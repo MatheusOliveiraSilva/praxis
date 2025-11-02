@@ -1,11 +1,13 @@
 use crate::types::{Content, Message, Tool, ToolCall, ToolChoice};
 use crate::streaming::{StreamChunk, parse_sse_stream};
+use crate::cache::{ResponseCache, cache_key};
 use anyhow::{Context, Result};
 use futures::Stream;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::pin::Pin;
+use std::time::Duration;
 
 const OPENAI_API_BASE: &str = "https://api.openai.com/v1";
 
@@ -13,11 +15,17 @@ const OPENAI_API_BASE: &str = "https://api.openai.com/v1";
 pub struct OpenAIClient {
     http_client: reqwest::Client,
     base_url: String,
+    cache: Option<ResponseCache>,
 }
 
 impl OpenAIClient {
-    /// Create new client with API key
+    /// Create new client with API key (no cache)
     pub fn new(api_key: impl Into<String>) -> Result<Self> {
+        Self::with_cache(api_key, None)
+    }
+    
+    /// Create new client with optional cache
+    pub fn with_cache(api_key: impl Into<String>, cache_ttl: Option<Duration>) -> Result<Self> {
         let api_key = api_key.into();
         
         let mut headers = HeaderMap::new();
@@ -33,10 +41,32 @@ impl OpenAIClient {
             .build()
             .context("Failed to create HTTP client")?;
         
+        let cache = cache_ttl.map(ResponseCache::new);
+        
         Ok(Self {
             http_client,
             base_url: OPENAI_API_BASE.to_string(),
+            cache,
         })
+    }
+    
+    /// Get cache statistics (if cache enabled)
+    pub fn cache_stats(&self) -> Option<crate::cache::CacheStats> {
+        self.cache.as_ref().map(|c| c.stats())
+    }
+    
+    /// Clear cache (if enabled)
+    pub fn clear_cache(&self) {
+        if let Some(cache) = &self.cache {
+            cache.clear();
+        }
+    }
+    
+    /// Cleanup expired cache entries (if enabled)
+    pub fn cleanup_cache(&self) {
+        if let Some(cache) = &self.cache {
+            cache.cleanup_expired();
+        }
     }
     
     /// Send chat completion request (non-streaming)
@@ -46,12 +76,42 @@ impl OpenAIClient {
         messages: Vec<Message>,
         options: ChatOptions,
     ) -> Result<ChatResponse> {
-        let request = self.build_request(model, messages, options, false)?;
+        let request = self.build_request(model, &messages, &options, false)?;
         
+        // Try cache first (if enabled)
+        if let Some(cache) = &self.cache {
+            let key = self.generate_cache_key(model, &messages, &options)?;
+            
+            if let Some(cached_bytes) = cache.get(&key) {
+                // Cache hit! Deserialize and return
+                if let Ok(cached_response) = serde_json::from_slice::<ChatResponse>(&cached_bytes) {
+                    return Ok(cached_response);
+                }
+                // If deserialization fails, invalidate and continue to API call
+                cache.invalidate(&key);
+            }
+            
+            // Cache miss - make API call
+            let response = self.make_completion_request(&request).await?;
+            
+            // Store in cache for next time
+            if let Ok(response_bytes) = serde_json::to_vec(&response) {
+                cache.set(key, response_bytes);
+            }
+            
+            return Ok(response);
+        }
+        
+        // No cache - direct API call
+        self.make_completion_request(&request).await
+    }
+    
+    /// Internal method to make actual API call
+    async fn make_completion_request(&self, request: &Value) -> Result<ChatResponse> {
         let response = self
             .http_client
             .post(format!("{}/chat/completions", self.base_url))
-            .json(&request)
+            .json(request)
             .send()
             .await
             .context("Failed to send request")?;
@@ -70,14 +130,27 @@ impl OpenAIClient {
         Ok(chat_response)
     }
     
+    /// Generate cache key from request parameters
+    fn generate_cache_key(
+        &self,
+        model: &str,
+        messages: &[Message],
+        options: &ChatOptions,
+    ) -> Result<String> {
+        let messages_bytes = serde_json::to_vec(messages)?;
+        let options_bytes = serde_json::to_vec(options)?;
+        Ok(cache_key(model, &messages_bytes, &options_bytes))
+    }
+    
     /// Send chat completion request (streaming)
+    /// Note: Streaming responses are NOT cached
     pub async fn chat_completion_stream(
         &self,
         model: &str,
         messages: Vec<Message>,
         options: ChatOptions,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamChunk>> + Send>>> {
-        let request = self.build_request(model, messages, options, true)?;
+        let request = self.build_request(model, &messages, &options, true)?;
         
         let response = self
             .http_client
@@ -101,14 +174,14 @@ impl OpenAIClient {
     fn build_request(
         &self,
         model: &str,
-        messages: Vec<Message>,
-        options: ChatOptions,
+        messages: &[Message],
+        options: &ChatOptions,
         stream: bool,
     ) -> Result<Value> {
         // Convert our messages to OpenAI format
         let openai_messages: Vec<Value> = messages
-            .into_iter()
-            .map(|msg| self.convert_message(msg))
+            .iter()
+            .map(|msg| self.convert_message(msg.clone()))
             .collect::<Result<Vec<_>>>()?;
         
         let mut request = serde_json::json!({
@@ -214,7 +287,7 @@ impl OpenAIClient {
 }
 
 /// Chat completion options
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ChatOptions {
     pub temperature: Option<f32>,
     pub max_tokens: Option<u32>,
