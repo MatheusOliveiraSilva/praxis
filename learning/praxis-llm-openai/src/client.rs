@@ -343,6 +343,11 @@ pub struct Choice {
 pub struct ResponseMessage {
     pub role: String,
     pub content: Option<String>,
+    
+    /// Reasoning content (o1 models only)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reasoning_content: Option<String>,
+    
     pub tool_calls: Option<Vec<ToolCall>>,
 }
 
@@ -351,6 +356,10 @@ pub struct Usage {
     pub prompt_tokens: u32,
     pub completion_tokens: u32,
     pub total_tokens: u32,
+    
+    /// Reasoning tokens (o1 models only)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reasoning_tokens: Option<u32>,
 }
 
 impl ChatResponse {
@@ -361,6 +370,13 @@ impl ChatResponse {
             .and_then(|c| c.message.content.as_deref())
     }
     
+    /// Get reasoning content (o1 models only)
+    pub fn reasoning(&self) -> Option<&str> {
+        self.choices
+            .first()
+            .and_then(|c| c.message.reasoning_content.as_deref())
+    }
+    
     /// Get first choice tool calls
     pub fn tool_calls(&self) -> Option<&[ToolCall]> {
         self.choices
@@ -369,11 +385,37 @@ impl ChatResponse {
     }
     
     /// Convert response to our Message type
+    /// Handles both regular content and reasoning content (o1 models)
     pub fn to_message(&self) -> Option<Message> {
         let choice = self.choices.first()?;
         
+        // Build content based on what's present
+        let content = match (&choice.message.reasoning_content, &choice.message.content) {
+            // Both reasoning and message present (o1 models)
+            (Some(reasoning), Some(msg)) => {
+                use crate::types::ContentPart;
+                Some(Content::Parts(vec![
+                    ContentPart::Reasoning { text: reasoning.clone() },
+                    ContentPart::Text { text: msg.clone() },
+                ]))
+            }
+            // Only reasoning (rare, but possible)
+            (Some(reasoning), None) => {
+                use crate::types::ContentPart;
+                Some(Content::Parts(vec![
+                    ContentPart::Reasoning { text: reasoning.clone() }
+                ]))
+            }
+            // Only message (normal case)
+            (None, Some(msg)) => {
+                Some(Content::text(msg.clone()))
+            }
+            // Neither (only tool calls)
+            (None, None) => None,
+        };
+        
         Some(Message::AI {
-            content: choice.message.content.as_ref().map(|c| Content::text(c.clone())),
+            content,
             tool_calls: choice.message.tool_calls.clone(),
             name: None,
         })
