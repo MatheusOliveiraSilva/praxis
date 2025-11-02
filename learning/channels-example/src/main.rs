@@ -51,6 +51,7 @@ async fn main() {
     let capacity = 5;
     let (tx, rx) = bounded::<String>(capacity);
     
+    
     println!("Channel capacity: {}\n", capacity);
     println!("Scenario: Fast producer (100ms) vs Slow consumer (300ms)");
     println!("Expected behavior: Producer will BLOCK when channel is full (backpressure)\n");
