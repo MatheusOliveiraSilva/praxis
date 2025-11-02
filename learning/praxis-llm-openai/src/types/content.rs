@@ -19,6 +19,11 @@ pub enum ContentPart {
         text: String,
     },
     
+    /// Reasoning content (for o1 models)
+    Reasoning {
+        text: String,
+    },
+    
     // Future: Image support
     // ImageUrl {
     //     image_url: ImageUrl,
@@ -54,10 +59,44 @@ impl Content {
             Self::Parts(parts) => {
                 // If single text part, return it
                 if parts.len() == 1 {
-                    let ContentPart::Text { text } = &parts[0];
-                    return Some(text);
+                    match &parts[0] {
+                        ContentPart::Text { text } => return Some(text),
+                        _ => return None,
+                    }
                 }
                 None
+            }
+        }
+    }
+    
+    /// Get reasoning text (if present)
+    pub fn reasoning_texts(&self) -> Vec<&str> {
+        match self {
+            Self::Text(_) => vec![],
+            Self::Parts(parts) => {
+                parts
+                    .iter()
+                    .filter_map(|part| match part {
+                        ContentPart::Reasoning { text } => Some(text.as_str()),
+                        _ => None,
+                    })
+                    .collect()
+            }
+        }
+    }
+    
+    /// Get all text (reasoning + message)
+    pub fn all_text(&self) -> String {
+        match self {
+            Self::Text(s) => s.clone(),
+            Self::Parts(parts) => {
+                parts
+                    .iter()
+                    .filter_map(|part| match part {
+                        ContentPart::Text { text } | ContentPart::Reasoning { text } => Some(text.as_str()),
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n")
             }
         }
     }
