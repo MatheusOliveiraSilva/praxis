@@ -1,5 +1,5 @@
 use anyhow::Result;
-use praxis_llm_openai::{LLMClient, OpenAIClient, ResponseRequest, Message, ReasoningConfig, StreamEvent};
+use praxis_llm::{LLMClient, OpenAIClient, ResponseRequest, Message, ReasoningConfig, StreamEvent};
 use futures::StreamExt;
 
 #[tokio::main]

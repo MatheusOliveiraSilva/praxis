@@ -1,5 +1,5 @@
 use anyhow::Result;
-use praxis_llm_openai::{LLMClient, OpenAIClient, ChatRequest, Message, StreamEvent};
+use praxis_llm::{LLMClient, OpenAIClient, ChatRequest, Message, StreamEvent};
 use futures::StreamExt;
 
 #[tokio::main]

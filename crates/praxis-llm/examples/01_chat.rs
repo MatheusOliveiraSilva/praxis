@@ -1,5 +1,5 @@
 use anyhow::Result;
-use praxis_llm_openai::{LLMClient, OpenAIClient, ChatRequest, Message};
+use praxis_llm::{LLMClient, OpenAIClient, ChatRequest, Message};
 
 #[tokio::main]
 async fn main() -> Result<()> {
