@@ -1,0 +1,35 @@
+[package]
+name = "praxis-llm"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+reqwest.workspace = true
+anyhow.workspace = true
+async-trait.workspace = true
+futures.workspace = true
+async-stream.workspace = true
+chrono.workspace = true
+
+[[example]]
+name = "01_chat"
+path = "examples/01_chat.rs"
+
+[[example]]
+name = "02_chat_streaming"
+path = "examples/02_chat_streaming.rs"
+
+[[example]]
+name = "03_reasoning"
+path = "examples/03_reasoning.rs"
+
+[[example]]
+name = "04_reasoning_streaming"
+path = "examples/04_reasoning_streaming.rs"
+
