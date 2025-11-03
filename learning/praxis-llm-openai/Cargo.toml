@@ -28,17 +28,17 @@ anyhow = "1"
 chrono = "0.4"
 
 [[example]]
-name = "01_simple_chat"
-path = "examples/01_simple_chat.rs"
+name = "01_chat"
+path = "examples/01_chat.rs"
 
 [[example]]
-name = "02_streaming"
-path = "examples/02_streaming.rs"
+name = "02_chat_streaming"
+path = "examples/02_chat_streaming.rs"
 
 [[example]]
-name = "03_tools"
-path = "examples/03_tools.rs"
+name = "03_reasoning"
+path = "examples/03_reasoning.rs"
 
 [[example]]
-name = "04_mcp_integration"
-path = "examples/04_mcp_integration.rs"
+name = "04_reasoning_streaming"
+path = "examples/04_reasoning_streaming.rs"
