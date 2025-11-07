@@ -37,24 +37,32 @@ impl MCPToolExecutor {
         Ok(all_tools)
     }
 
-    /// Execute a tool by finding the right MCP server
-    #[allow(dead_code)]
-    async fn execute_tool(&self, tool_name: &str, arguments: &str) -> Result<String> {
+    /// Get all tools from all connected MCP servers in LLM format
+    pub async fn get_llm_tools(&self) -> Result<Vec<praxis_llm::Tool>> {
+        let mut all_tools = Vec::new();
         let clients = self.clients.read().await;
+        
+        for client in clients.values() {
+            let tools = client.get_llm_tools().await?;
+            all_tools.extend(tools);
+        }
+        
+        Ok(all_tools)
+    }
 
-        // Try to find the tool in any of the connected servers
+    /// Execute a tool by finding the right MCP server
+    pub async fn execute_tool(&self, tool_name: &str, arguments: serde_json::Value) 
+        -> Result<Vec<ToolResponse>> {
+        let clients = self.clients.read().await;
+        
         for client in clients.values() {
             let tools = client.list_tools().await?;
-            
             if tools.iter().any(|t| t.name == tool_name) {
-                // Found the tool! Call it
-                let args: serde_json::Value = serde_json::from_str(arguments)?;
-                let responses = client.call_tool(tool_name, args).await?;
-                return Ok(ToolResponse::join_responses(&responses));
+                return client.call_tool(tool_name, arguments).await;
             }
         }
-
-        Err(anyhow::anyhow!("Tool '{}' not found in any connected MCP server", tool_name))
+        
+        Err(anyhow::anyhow!("Tool '{}' not found", tool_name))
     }
 }
 
