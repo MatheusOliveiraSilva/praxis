@@ -1,0 +1,24 @@
+[package]
+name = "praxis-graph"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+praxis-types = { path = "../praxis-types" }
+praxis-llm = { path = "../praxis-llm" }
+tokio.workspace = true
+anyhow.workspace = true
+async-trait.workspace = true
+futures.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+
+[[example]]
+name = "react_loop"
+path = "examples/react_loop.rs"
+
