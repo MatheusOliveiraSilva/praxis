@@ -1,0 +1,21 @@
+[package]
+name = "praxis-mcp"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+rmcp = { version = "0.8.0", features = [
+    "client",
+    "transport-child-process",
+    "transport-streamable-http-client",
+] }
+tokio.workspace = true
+anyhow.workspace = true
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+url = "2.5"
+

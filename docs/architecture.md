@@ -13,7 +13,8 @@ This document is the consolidated architecture. For detailed evolution, see:
 - ✅ [Checkpoint 1: Node Abstraction](./architecture-checkpoint-1-node.md)
 - ✅ [Checkpoint 2: Graph Orchestration](./architecture-checkpoint-2-graph.md)
 - ✅ [Checkpoint 3: StreamEvent & Persistence](./architecture-checkpoint-3-streamevents.md)
-- ✅ [Checkpoint 4: Developer Experience & High-Level API](./architecture-checkpoint-4-dx.md) 🆕
+- ✅ [Checkpoint 4: Developer Experience & High-Level API](./architecture-checkpoint-4-dx.md)
+- ⭐ [Checkpoint 5: MCP-Native Design](./architecture-checkpoint-5-mcp.md) **NEW!**
 
 ---
 

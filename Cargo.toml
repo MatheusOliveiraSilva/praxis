@@ -4,6 +4,7 @@ members = [
     "crates/praxis-llm",
     "crates/praxis-types",
     "crates/praxis-graph",
+    "crates/praxis-mcp",
 ]
 
 [workspace.package]
