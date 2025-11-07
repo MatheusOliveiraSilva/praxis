@@ -1,8 +1,39 @@
 
-## “Guia de jornada” (para guardar e seguir passo a passo)
+## "Guia de jornada" (para guardar e seguir passo a passo)
 
 Esse é o **meta-prompt pessoal** que descreve **tudo o que quero construir e aprender**, sem pedir implementação direta.
 Usar para se orientar e pedir pequenas partes pontuais ao longo da jornada.
+
+---
+
+## 🎯 Roadmap de Implementação
+
+**Status Atual**: MCP Multi-Server Integration ✅ Completo
+
+### Próximas Fases (em ordem):
+
+1. **Checkpoint 6: API REST (praxis-api)** 📋 Pronto para Implementação
+   - Framework: Axum + SSE
+   - Endpoints: `/v1/chat`, `/v1/chat/{id}/stream`, `/v1/agents`, `/v1/health`
+   - Middleware: Logging, CORS, Timeout
+   - Auth: Deixar para depois
+   - Status: Documentação completa em `architecture-checkpoint-6-api.md`
+
+2. **Checkpoint 7: DX Layer (praxis-dx)** 📋 Pronto para Implementação
+   - CLI: `praxis init`, `praxis dev`, `praxis config`, `praxis mcp`, `praxis deploy`
+   - Config: TOML com env var substitution
+   - AgentBuilder: Fluent API programática
+   - MCP: Parse comma-separated string de servers
+   - Middleware: Sistema modular (logging agora, metrics/rate-limit depois)
+   - Status: Documentação completa em `architecture-checkpoint-7-dx.md`
+
+3. **Checkpoint 8: Persistence (praxis-persist)** 📋 Pronto para Implementação
+   - Database: MongoDB (driver oficial)
+   - Schema: Collections `threads` e `messages`
+   - Context Management: Token-aware com auto-summarization
+   - Policy: X mil tokens → gera summary → injeta no system prompt
+   - MessageAccumulator: Converte eventos de streaming em mensagens DB
+   - Status: Documentação completa em `architecture-checkpoint-8-persistence.md`
 
 ---
 
