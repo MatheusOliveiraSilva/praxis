@@ -1,6 +1,7 @@
 use anyhow::Result;
-use praxis_graph::{Graph, GraphConfig, GraphInput, LLMConfig, MockToolExecutor, StreamEvent};
+use praxis_graph::{Graph, GraphConfig, GraphInput, LLMConfig, StreamEvent};
 use praxis_llm::{Content, Message, OpenAIClient};
+use praxis_mcp::{MCPClient, MCPToolExecutor};
 use std::io::{self, Write};
 use std::sync::Arc;
 use tokio;
@@ -13,8 +14,13 @@ async fn main() -> Result<()> {
     println!();
     println!("This demo shows a React agent that can:");
     println!("  • Think through problems (reasoning)");
-    println!("  • Use tools (calculator, weather, search)");
+    println!("  • Use tools from MCP servers");
     println!("  • Respond to your questions");
+    println!();
+    println!("Prerequisites:");
+    println!("  1. Set OPENAI_API_KEY: export OPENAI_API_KEY=your_key");
+    println!("  2. Set MCP_SERVERS: export MCP_SERVERS=\"http://localhost:8000/mcp,http://localhost:8001/mcp\"");
+    println!("  3. Start MCP servers: cd mcp_servers/weather && uv run python weather.py");
     println!();
     println!("Type 'exit' to quit");
     println!();
@@ -24,17 +30,46 @@ async fn main() -> Result<()> {
         "OPENAI_API_KEY must be set in environment. Run: export OPENAI_API_KEY=your_key_here"
     );
 
+    // Parse MCP servers from environment
+    let mcp_servers = std::env::var("MCP_SERVERS")
+        .unwrap_or_else(|_| "http://localhost:8000/mcp".to_string());
+
+    // Create MCP tool executor (aggregates multiple servers)
+    let mcp_executor = Arc::new(MCPToolExecutor::new());
+
+    // Connect to each MCP server
+    println!("Connecting to MCP servers...");
+    for url in mcp_servers.split(',') {
+        let url = url.trim();
+        if !url.is_empty() {
+            print!("  Connecting to {}... ", url);
+            io::stdout().flush()?;
+            match MCPClient::new_http(
+                &format!("mcp-{}", uuid::Uuid::new_v4()),
+                url
+            ).await {
+                Ok(client) => {
+                    mcp_executor.add_server(client).await?;
+                    println!("✓");
+                }
+                Err(e) => {
+                    println!("✗ Failed: {}", e);
+                    println!("Make sure the MCP server is running at {}", url);
+                    return Err(e);
+                }
+            }
+        }
+    }
+    println!();
+
     // Create LLM client
     let llm_client = Arc::new(OpenAIClient::new(api_key)?);
-
-    // Create tool executor (mock for now)
-    let tool_executor = Arc::new(MockToolExecutor);
 
     // Create graph config
     let config = GraphConfig::default();
 
     // Create graph
-    let graph = Graph::new(llm_client, tool_executor, config);
+    let graph = Graph::new(llm_client, mcp_executor, config);
 
     // Conversation loop
     let conversation_id = uuid::Uuid::new_v4().to_string();
@@ -53,7 +88,7 @@ async fn main() -> Result<()> {
         }
 
         if input.eq_ignore_ascii_case("exit") {
-            println!("\n👋 Goodbye!");
+            println!("\nGoodbye!");
             break;
         }
 
@@ -89,7 +124,7 @@ async fn main() -> Result<()> {
 
                 StreamEvent::Reasoning { content } => {
                     if !in_reasoning {
-                        print!("\n\x1b[2;3m💭 Reasoning: ");
+                        print!("\n\x1b[2;3mReasoning: ");
                         in_reasoning = true;
                         in_message = false;
                     }
@@ -121,9 +156,9 @@ async fn main() -> Result<()> {
                     }
                     if let Some(name) = name {
                         if let Some(args) = arguments {
-                            print!("\n\x1b[1;33m🔧 Calling tool: {} ({})\x1b[0m", name, args);
+                            print!("\n\x1b[1;33mCalling tool: {} ({})\x1b[0m", name, args);
                         } else {
-                            print!("\n\x1b[1;33m🔧 Calling tool: {}\x1b[0m", name);
+                            print!("\n\x1b[1;33mCalling tool: {}\x1b[0m", name);
                         }
                         io::stdout().flush()?;
                     }
@@ -139,7 +174,7 @@ async fn main() -> Result<()> {
                 } => {
                     if is_error {
                         print!(
-                            "\n\x1b[1;31m❌ Tool error ({}ms): {}\x1b[0m",
+                            "\n\x1b[1;31mTool error ({}ms): {}\x1b[0m",
                             duration_ms, result
                         );
                     } else {
@@ -150,7 +185,7 @@ async fn main() -> Result<()> {
                             result
                         };
                         print!(
-                            "\n\x1b[1;32m✓ Tool result ({}ms): {}\x1b[0m",
+                            "\n\x1b[1;32mTool result ({}ms): {}\x1b[0m",
                             duration_ms, display_result
                         );
                     }
@@ -164,7 +199,7 @@ async fn main() -> Result<()> {
                 }
 
                 StreamEvent::Error { message, .. } => {
-                    print!("\n\n\x1b[1;31m❌ Error: {}\x1b[0m", message);
+                    print!("\n\n\x1b[1;31mError: {}\x1b[0m", message);
                     io::stdout().flush()?;
                     break;
                 }
