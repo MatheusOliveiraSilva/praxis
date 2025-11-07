@@ -2,6 +2,8 @@
 resolver = "2"
 members = [
     "crates/praxis-llm",
+    "crates/praxis-types",
+    "crates/praxis-graph",
 ]
 
 [workspace.package]
@@ -21,4 +23,5 @@ async-trait = "0.1"
 futures = "0.3"
 async-stream = "0.3"
 chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
 
