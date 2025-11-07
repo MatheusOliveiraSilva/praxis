@@ -1,65 +1,32 @@
 use anyhow::Result;
+use rmcp::transport::{TokioChildProcess, ConfigureCommandExt};
+use rmcp::ServiceExt;
 use serde_json::Value;
+use std::process::Stdio;
+use std::sync::Arc;
+use tokio::process::Command;
+use tokio::sync::Mutex;
 
-/// Transport type for MCP connection
-#[derive(Debug, Clone)]
-pub enum MCPTransport {
-    /// Connect via stdio to a local process (npx, python, etc.)
-    Stdio {
-        command: String,
-        args: Vec<String>,
-    },
-    /// Connect via HTTP to a remote MCP server
-    Http {
-        url: String,
-        headers: Vec<(String, String)>,
-    },
-}
+type ServerSession = Arc<Mutex<Box<dyn std::any::Any + Send + Sync>>>;
 
 /// MCP Client wrapper that manages connection to MCP servers
 /// 
-/// Supports two transport modes:
-/// - **Stdio**: For local development and spawning MCP server processes
-/// - **HTTP**: For production deployments with remote MCP servers
-/// 
-/// # Examples
-/// 
-/// ## Stdio Transport (Development)
-/// ```no_run
-/// let client = MCPClient::new_stdio(
-///     "weather",
-///     "python3",
-///     vec!["weather_server.py"]
-/// ).await?;
-/// ```
-/// 
-/// ## HTTP Transport (Production)
-/// ```no_run
-/// let client = MCPClient::new_http(
-///     "weather",
-///     "https://mcp.example.com/weather"
-/// ).await?;
-/// ```
+/// Supports stdio transport for connecting to local MCP servers  
 pub struct MCPClient {
     server_name: String,
-    transport: MCPTransport,
-    // TODO: Add actual rmcp client connection
-    // When implemented, this will hold the active rmcp connection
+    server: ServerSession,
 }
 
 impl MCPClient {
-    /// Create a new MCP client via **stdio** (spawns local process)
-    /// 
-    /// Best for: Development, testing, local tools
+    /// Create a new MCP client via stdio (spawns local process)
     /// 
     /// # Examples
     /// 
     /// ```no_run
-    /// // Python MCP server
     /// let client = MCPClient::new_stdio(
     ///     "weather",
     ///     "python3",
-    ///     vec!["weather_server.py"]
+    ///     vec!["weather.py"]
     /// ).await?;
     /// ```
     pub async fn new_stdio(
@@ -68,107 +35,75 @@ impl MCPClient {
         args: Vec<impl Into<String>>,
     ) -> Result<Self> {
         let server_name = server_name.into();
-        let transport = MCPTransport::Stdio {
-            command: command.into(),
-            args: args.into_iter().map(|a| a.into()).collect(),
-        };
+        let command = command.into();
+        let args: Vec<String> = args.into_iter().map(|a| a.into()).collect();
         
-        // TODO: Spawn process and connect via rmcp
-        // use rmcp::transport::TokioChildProcess;
-        // use rmcp::ServiceExt;
-        // 
-        // let mut cmd = Command::new(&transport.command);
-        // cmd.configure(|c| {
-        //     for arg in &transport.args {
-        //         c.arg(arg);
-        //     }
-        //     c.stdin(Stdio::piped())
-        //         .stdout(Stdio::piped())
-        //         .stderr(Stdio::inherit())
-        // });
-        // let process = TokioChildProcess::new(cmd)?;
-        // let client = ().serve(process).await?;
-        
+        // Build and configure command
+        let cmd = Command::new(&command).configure(|c| {
+            for arg in &args {
+                c.arg(arg);
+            }
+            c.stdin(Stdio::piped());
+            c.stdout(Stdio::piped());
+            c.stderr(Stdio::inherit());
+        });
+
+        // Spawn MCP server process and connect
+        let transport = TokioChildProcess::new(cmd)?;
+        let server = ().serve(transport).await?;
+
         Ok(Self {
             server_name,
-            transport,
+            server: Arc::new(Mutex::new(Box::new(server))),
         })
-    }
-
-    /// Create a new MCP client via **HTTP** (connects to remote server)
-    /// 
-    /// Best for: Production, distributed systems, remote tools
-    /// 
-    /// # Examples
-    /// 
-    /// ```no_run
-    /// // Basic HTTP connection
-    /// let client = MCPClient::new_http(
-    ///     "weather",
-    ///     "https://mcp.example.com/weather"
-    /// ).await?;
-    /// ```
-    pub async fn new_http(
-        server_name: impl Into<String>,
-        url: impl Into<String>,
-    ) -> Result<Self> {
-        let server_name = server_name.into();
-        let transport = MCPTransport::Http {
-            url: url.into(),
-            headers: vec![],
-        };
-        
-        // TODO: Connect via rmcp HTTP transport
-        // use rmcp::transport::StreamableHttpClientTransport;
-        // use rmcp::ServiceExt;
-        // 
-        // let http_transport = StreamableHttpClientTransport::new(&transport.url)?;
-        // let client = ().serve(http_transport).await?;
-        
-        Ok(Self {
-            server_name,
-            transport,
-        })
-    }
-
-    /// Add HTTP header (only for HTTP transport)
-    pub fn with_header(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
-        if let MCPTransport::Http { headers, .. } = &mut self.transport {
-            headers.push((key.into(), value.into()));
-        }
-        self
-    }
-
-    /// Legacy method for backwards compatibility
-    /// 
-    /// Deprecated: Use `new_stdio` or `new_http` instead
-    #[deprecated(since = "0.2.0", note = "Use new_stdio() or new_http() instead")]
-    pub async fn new(
-        server_name: impl Into<String>,
-        command: impl Into<String>,
-        args: Vec<&str>,
-    ) -> Result<Self> {
-        Self::new_stdio(server_name, command, args).await
     }
 
     /// List all available tools from the MCP server
     pub async fn list_tools(&self) -> Result<Vec<ToolInfo>> {
-        // TODO: Implement using rmcp.list_tools()
-        Ok(vec![
+        // For now return mock data - full rmcp integration coming soon
+        // TODO: Implement proper rmcp session management
+        let tools = vec![
             ToolInfo {
-                name: format!("{}_tool_1", self.server_name),
-                description: Some(format!("Example tool from {}", self.server_name)),
-                input_schema: Value::Object(serde_json::Map::new()),
+                name: "get_alerts".to_string(),
+                description: Some("Get weather alerts for a US state".to_string()),
+                input_schema: serde_json::json!({
+                    "type": "object",
+                    "properties": {
+                        "state": {
+                            "type": "string",
+                            "description": "Two-letter US state code"
+                        }
+                    }
+                }),
             },
-        ])
+            ToolInfo {
+                name: "get_forecast".to_string(),
+                description: Some("Get weather forecast for a location".to_string()),
+                input_schema: serde_json::json!({
+                    "type": "object",
+                    "properties": {
+                        "latitude": { "type": "number" },
+                        "longitude": { "type": "number" }
+                    }
+                }),
+            },
+        ];
+        
+        Ok(tools)
     }
+    
 
     /// Call a tool on the MCP server
     pub async fn call_tool(&self, name: &str, arguments: Value) -> Result<Vec<ToolResponse>> {
-        // TODO: Implement using rmcp.call_tool()
-        Ok(vec![ToolResponse::Text {
-            text: format!("Mock response from {}: {} with {:?}", self.server_name, name, arguments),
-        }])
+        // For now return mock responses
+        // TODO: Implement proper rmcp tool calling
+        let result = format!(
+            "Mock MCP response for {}: arguments = {}",
+            name,
+            serde_json::to_string_pretty(&arguments)?
+        );
+        
+        Ok(vec![ToolResponse::Text { text: result }])
     }
 
     /// Get server name
