@@ -31,13 +31,17 @@ A LLM deve agir como **mentora técnica e revisora**, não como executora total.
 ### Estrutura que quero criar
 
 * Monorepo Cargo workspace:
-  `praxis-types`, `praxis-graph`, `praxis-llm-*`, `praxis-tools-*`, `praxis-http`, `praxis-observe`, `praxis-gateway`.
+  * **DX Layer (High-Level):** `praxis-agent`, `praxis-registry`, `praxis-middleware`, `praxis-templates`
+  * **Core Runtime:** `praxis-types`, `praxis-graph`
+  * **Integration:** `praxis-llm`, `praxis-mcp`, `praxis-tools`, `praxis-db`, `praxis-gateway`
+  * **Observability:** `praxis-observe`
 * Crates pequenas, bem isoladas e documentadas.
-* Event model canônico (`StreamEvent`) com canais “Reasoning” e “Message”.
+* Event model canônico (`StreamEvent`) com canais "Reasoning" e "Message".
 * Implementação inicial mock, depois integração real com LLM (OpenAI/Azure).
 * Tools locais, depois adapter MCP.
+* **Developer Experience:** Builder API, config files (praxis.toml), templates, middleware system.
 * Gateway SSE (e WS opcional) com tracing e observabilidade.
-* Exemplo funcional (`hello-sse`, `react-with-tool`).
+* Exemplo funcional (`hello-sse`, `react-with-tool`, templates pré-configurados).
 
 ---
 

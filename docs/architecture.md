@@ -1,8 +1,19 @@
 # Praxis Architecture
 
-**Version**: 1.0  
-**Date**: 2025-11-02  
-**Status**: Conceptual Design Complete
+**Version**: 1.1  
+**Date**: 2025-11-07  
+**Status**: Conceptual Design Complete + DX Layer Planned
+
+---
+
+## Architecture Evolution
+
+This document is the consolidated architecture. For detailed evolution, see:
+
+- ✅ [Checkpoint 1: Node Abstraction](./architecture-checkpoint-1-node.md)
+- ✅ [Checkpoint 2: Graph Orchestration](./architecture-checkpoint-2-graph.md)
+- ✅ [Checkpoint 3: StreamEvent & Persistence](./architecture-checkpoint-3-streamevents.md)
+- ✅ [Checkpoint 4: Developer Experience & High-Level API](./architecture-checkpoint-4-dx.md) 🆕
 
 ---
 
@@ -934,34 +945,51 @@ EndStream     → Execution complete (+ status + tokens)
 
 ## Next Steps
 
-### Immediate
+### Checkpoints Completed
 1. ✅ Checkpoint 1: Node abstraction (DONE)
 2. ✅ Checkpoint 2: Graph orchestration (DONE)
 3. ✅ Checkpoint 3: StreamEvent & Persistence (DONE)
-4. ✅ Architecture consolidation (DONE)
+4. ✅ Checkpoint 4: Developer Experience & High-Level API (DONE)
+5. ✅ Architecture consolidation (DONE)
 
 ### Phase 1: Foundational Learning
 - Study Rust async/concurrency (Chapter 16 + async book)
 - Practice bounded channels (see `learning/channels-example/`)
 - Understand Send/Sync traits
 
-### Phase 2: Core Implementation
+### Phase 2: Core Implementation (2-3 weeks)
 - Create `praxis-types` crate (GraphState, StreamEvent, ContentItem)
 - Implement Node trait + LLMNode/ToolNode
 - Implement Graph + SimpleRouter
 - Create MessageAccumulator
 
-### Phase 3: Integration
+### Phase 3: Integration (2-3 weeks)
 - Implement LLMClient (mock → real OpenAI/Azure)
 - Implement ToolExecutor (local tools → MCP adapter)
-- Create Gateway with SSE endpoint
 - MongoDB persistence layer
 
-### Phase 4: Refinement
-- Add observability (tracing, metrics)
+### Phase 4: Developer Experience (3-4 weeks) 🆕
+**See [Checkpoint 4](./architecture-checkpoint-4-dx.md) for details**
+- Create `praxis-agent` crate (Agent, AgentBuilder)
+- Create `praxis-registry` crate (MCPRegistry, ToolRegistry)
+- Config file support (praxis.toml)
+- Agent templates (RAG, Code, Support)
+- Middleware system (Logging, Retry, Metrics)
+
+### Phase 5: Gateway & Examples (2-3 weeks)
+- Create Gateway with SSE endpoint
+- Example: Simple chatbot (< 15 lines)
+- Example: RAG agent with MCP
+- Example: Code assistant
+- Comprehensive documentation
+
+### Phase 6: Refinement & Ecosystem (ongoing)
+- CLI tool (`praxis-cli`)
+- Add observability (tracing, metrics, dashboard)
 - Write tests (unit + integration)
 - Benchmark and optimize
-- Documentation and examples
+- Public MCP registry
+- Community building
 
 ---
 
