@@ -24,11 +24,11 @@ async fn main() -> Result<()> {
     // ============================================
     // 1. Connect to MCP Server via HTTP
     // ============================================
-    println!("Connecting to MCP server at http://localhost:8000...");
+    println!("Connecting to MCP server at http://localhost:8000/mcp...");
     
     let client = MCPClient::new_http(
         "weather",
-        "http://localhost:8000"
+        "http://localhost:8000/mcp"
     ).await?;
     
     println!("Connected!\n");
