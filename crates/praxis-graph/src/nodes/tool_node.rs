@@ -1,18 +1,18 @@
 use crate::node::{EventSender, Node, NodeType};
-use crate::tools::ToolExecutor;
 use anyhow::Result;
 use async_trait::async_trait;
+use praxis_mcp::{MCPToolExecutor, ToolResponse};
 use praxis_types::{GraphState, StreamEvent};
 use std::sync::Arc;
 use std::time::Instant;
 
 pub struct ToolNode {
-    executor: Arc<dyn ToolExecutor>,
+    mcp_executor: Arc<MCPToolExecutor>,
 }
 
 impl ToolNode {
-    pub fn new(executor: Arc<dyn ToolExecutor>) -> Self {
-        Self { executor }
+    pub fn new(mcp_executor: Arc<MCPToolExecutor>) -> Self {
+        Self { mcp_executor }
     }
 }
 
@@ -30,12 +30,18 @@ impl Node for ToolNode {
         for tool_call in tool_calls {
             let start = Instant::now();
 
+            // Parse arguments from string to Value
+            let args: serde_json::Value = serde_json::from_str(&tool_call.function.arguments)?;
+            
             match self
-                .executor
-                .execute(&tool_call.function.name, &tool_call.function.arguments)
+                .mcp_executor
+                .execute_tool(&tool_call.function.name, args)
                 .await
             {
-                Ok(result) => {
+                Ok(responses) => {
+                    // Join all responses into a single result string
+                    let result = ToolResponse::join_responses(&responses);
+                    
                     // Success: emit result event
                     event_tx
                         .send(StreamEvent::ToolResult {

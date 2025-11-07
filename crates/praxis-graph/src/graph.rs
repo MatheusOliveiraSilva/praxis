@@ -1,9 +1,9 @@
 use crate::node::{Node, NodeType};
 use crate::nodes::{LLMNode, ToolNode};
 use crate::router::{NextNode, Router, SimpleRouter};
-use crate::tools::ToolExecutor;
 use anyhow::Result;
 use praxis_llm::LLMClient;
+use praxis_mcp::MCPToolExecutor;
 use praxis_types::{GraphConfig, GraphInput, GraphState, StreamEvent};
 use std::sync::Arc;
 use std::time::Instant;
@@ -11,19 +11,19 @@ use tokio::sync::mpsc;
 
 pub struct Graph {
     llm_client: Arc<dyn LLMClient>,
-    tool_executor: Arc<dyn ToolExecutor>,
+    mcp_executor: Arc<MCPToolExecutor>,
     config: GraphConfig,
 }
 
 impl Graph {
     pub fn new(
         llm_client: Arc<dyn LLMClient>,
-        tool_executor: Arc<dyn ToolExecutor>,
+        mcp_executor: Arc<MCPToolExecutor>,
         config: GraphConfig,
     ) -> Self {
         Self {
             llm_client,
-            tool_executor,
+            mcp_executor,
             config,
         }
     }
@@ -34,11 +34,11 @@ impl Graph {
 
         // Clone what we need for the spawned task
         let llm_client = Arc::clone(&self.llm_client);
-        let tool_executor = Arc::clone(&self.tool_executor);
+        let mcp_executor = Arc::clone(&self.mcp_executor);
         let config = self.config.clone();
 
         tokio::spawn(async move {
-            if let Err(e) = Self::execute_loop(input, tx.clone(), llm_client, tool_executor, config).await {
+            if let Err(e) = Self::execute_loop(input, tx.clone(), llm_client, mcp_executor, config).await {
                 let _ = tx
                     .send(StreamEvent::Error {
                         message: e.to_string(),
@@ -55,7 +55,7 @@ impl Graph {
         input: GraphInput,
         event_tx: mpsc::Sender<StreamEvent>,
         llm_client: Arc<dyn LLMClient>,
-        tool_executor: Arc<dyn ToolExecutor>,
+        mcp_executor: Arc<MCPToolExecutor>,
         config: GraphConfig,
     ) -> Result<()> {
         let start_time = Instant::now();
@@ -73,8 +73,8 @@ impl Graph {
             .await?;
 
         // Create nodes
-        let llm_node = LLMNode::new(llm_client);
-        let tool_node = ToolNode::new(tool_executor);
+        let llm_node = LLMNode::new(llm_client, mcp_executor.clone());
+        let tool_node = ToolNode::new(mcp_executor);
         let router = SimpleRouter;
 
         let mut current_node = NodeType::LLM;

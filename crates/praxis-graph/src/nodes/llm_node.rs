@@ -2,65 +2,22 @@ use crate::node::{EventSender, Node, NodeType};
 use anyhow::Result;
 use async_trait::async_trait;
 use futures::StreamExt;
-use praxis_llm::{ChatOptions, ChatRequest, LLMClient, Message, Tool, ToolChoice};
+use praxis_llm::{ChatOptions, ChatRequest, LLMClient, Message, ToolChoice};
+use praxis_mcp::MCPToolExecutor;
 use praxis_types::GraphState;
 use std::sync::Arc;
 
 pub struct LLMNode {
     client: Arc<dyn LLMClient>,
+    mcp_executor: Arc<MCPToolExecutor>,
 }
 
 impl LLMNode {
-    pub fn new(client: Arc<dyn LLMClient>) -> Self {
-        Self { client }
-    }
-
-    /// Build tools list for the LLM (mock for now)
-    fn build_tools() -> Vec<Tool> {
-        vec![
-            Tool::new(
-                "calculator",
-                "Perform mathematical calculations. Input should be a mathematical expression.",
-                serde_json::json!({
-                    "type": "object",
-                    "properties": {
-                        "expression": {
-                            "type": "string",
-                            "description": "The mathematical expression to evaluate"
-                        }
-                    },
-                    "required": ["expression"]
-                }),
-            ),
-            Tool::new(
-                "get_weather",
-                "Get current weather information for a location.",
-                serde_json::json!({
-                    "type": "object",
-                    "properties": {
-                        "location": {
-                            "type": "string",
-                            "description": "The city and state, e.g. San Francisco, CA"
-                        }
-                    },
-                    "required": ["location"]
-                }),
-            ),
-            Tool::new(
-                "search",
-                "Search for information on the internet.",
-                serde_json::json!({
-                    "type": "object",
-                    "properties": {
-                        "query": {
-                            "type": "string",
-                            "description": "The search query"
-                        }
-                    },
-                    "required": ["query"]
-                }),
-            ),
-        ]
+    pub fn new(client: Arc<dyn LLMClient>, mcp_executor: Arc<MCPToolExecutor>) -> Self {
+        Self { 
+            client,
+            mcp_executor,
+        }
     }
 
     /// Convert praxis_llm::StreamEvent to praxis_types::StreamEvent
@@ -93,11 +50,14 @@ impl LLMNode {
 #[async_trait]
 impl Node for LLMNode {
     async fn execute(&self, state: &mut GraphState, event_tx: EventSender) -> Result<()> {
+        // Get tools from all connected MCP servers
+        let tools = self.mcp_executor.get_llm_tools().await?;
+        
         // Build chat request from state
         let options = ChatOptions::new()
             .temperature(state.llm_config.temperature.unwrap_or(0.7))
             .max_tokens(state.llm_config.max_tokens.unwrap_or(4096))
-            .tools(Self::build_tools())
+            .tools(tools)
             .tool_choice(ToolChoice::auto());
 
         let request = ChatRequest::new(state.llm_config.model.clone(), state.messages.clone())

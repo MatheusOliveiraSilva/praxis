@@ -9,6 +9,7 @@ repository.workspace = true
 [dependencies]
 praxis-types = { path = "../praxis-types" }
 praxis-llm = { path = "../praxis-llm" }
+praxis-mcp = { path = "../praxis-mcp" }
 tokio.workspace = true
 anyhow.workspace = true
 async-trait.workspace = true
