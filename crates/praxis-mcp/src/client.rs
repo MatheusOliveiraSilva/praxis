@@ -1,109 +1,147 @@
 use anyhow::Result;
-use rmcp::transport::{TokioChildProcess, ConfigureCommandExt};
-use rmcp::ServiceExt;
+use rmcp::{ServiceExt, service::RoleClient};
+use rmcp::transport::streamable_http_client::StreamableHttpClientWorker;
 use serde_json::Value;
-use std::process::Stdio;
-use std::sync::Arc;
-use tokio::process::Command;
-use tokio::sync::Mutex;
-
-type ServerSession = Arc<Mutex<Box<dyn std::any::Any + Send + Sync>>>;
 
 /// MCP Client wrapper that manages connection to MCP servers
 /// 
-/// Supports stdio transport for connecting to local MCP servers  
+/// Maintains an active connection to an MCP server and provides methods
+/// to list tools and execute them. The connection is kept alive for the
+/// lifetime of this client.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use praxis_mcp::MCPClient;
+/// 
+/// # async fn example() -> anyhow::Result<()> {
+/// // Connect to MCP server
+/// let client = MCPClient::new_http(
+///     "weather",
+///     "http://localhost:8000"
+/// ).await?;
+/// 
+/// // List available tools
+/// let tools = client.list_tools().await?;
+/// 
+/// // Call a tool
+/// let result = client.call_tool("get_weather", serde_json::json!({
+///     "location": "San Francisco"
+/// })).await?;
+/// # Ok(())
+/// # }
+/// ```
 pub struct MCPClient {
     server_name: String,
-    server: ServerSession,
+    /// Keep the running service alive (connection stays open)
+    _running_service: rmcp::service::RunningService<RoleClient, ()>,
+    /// Peer for making MCP calls
+    peer: rmcp::service::Peer<RoleClient>,
 }
 
 impl MCPClient {
-    /// Create a new MCP client via stdio (spawns local process)
+    /// Create a new MCP client via HTTP (streamable-http transport)
+    /// 
+    /// Connects to an MCP server running with streamable-http transport.
+    /// The connection is established during this call and kept alive for
+    /// the lifetime of the MCPClient.
     /// 
     /// # Examples
     /// 
     /// ```no_run
-    /// let client = MCPClient::new_stdio(
+    /// use praxis_mcp::MCPClient;
+    /// 
+    /// # async fn example() -> anyhow::Result<()> {
+    /// let client = MCPClient::new_http(
     ///     "weather",
-    ///     "python3",
-    ///     vec!["weather.py"]
+    ///     "http://localhost:8000"
     /// ).await?;
+    /// # Ok(())
+    /// # }
     /// ```
-    pub async fn new_stdio(
+    pub async fn new_http(
         server_name: impl Into<String>,
-        command: impl Into<String>,
-        args: Vec<impl Into<String>>,
+        url: impl Into<String>,
     ) -> Result<Self> {
         let server_name = server_name.into();
-        let command = command.into();
-        let args: Vec<String> = args.into_iter().map(|a| a.into()).collect();
+        let url = url.into();
         
-        // Build and configure command
-        let cmd = Command::new(&command).configure(|c| {
-            for arg in &args {
-                c.arg(arg);
-            }
-            c.stdin(Stdio::piped());
-            c.stdout(Stdio::piped());
-            c.stderr(Stdio::inherit());
-        });
-
-        // Spawn MCP server process and connect
-        let transport = TokioChildProcess::new(cmd)?;
-        let server = ().serve(transport).await?;
-
+        // Create streamable HTTP worker as transport using reqwest::Client
+        let worker = StreamableHttpClientWorker::<reqwest::Client>::new_simple(url.clone());
+        
+        // Connect and perform MCP handshake (initialize/initialized)
+        // The worker itself implements the Worker trait which can be used as transport
+        let running_service = ().serve(worker).await
+            .map_err(|e| anyhow::anyhow!("Failed to connect to MCP server at {}: {}", url, e))?;
+        
+        // Get peer for making calls (clone to own it)
+        let peer = running_service.peer().clone();
+        
         Ok(Self {
             server_name,
-            server: Arc::new(Mutex::new(Box::new(server))),
+            _running_service: running_service,
+            peer,
         })
     }
 
     /// List all available tools from the MCP server
     pub async fn list_tools(&self) -> Result<Vec<ToolInfo>> {
-        // For now return mock data - full rmcp integration coming soon
-        // TODO: Implement proper rmcp session management
-        let tools = vec![
-            ToolInfo {
-                name: "get_alerts".to_string(),
-                description: Some("Get weather alerts for a US state".to_string()),
-                input_schema: serde_json::json!({
-                    "type": "object",
-                    "properties": {
-                        "state": {
-                            "type": "string",
-                            "description": "Two-letter US state code"
-                        }
-                    }
-                }),
-            },
-            ToolInfo {
-                name: "get_forecast".to_string(),
-                description: Some("Get weather forecast for a location".to_string()),
-                input_schema: serde_json::json!({
-                    "type": "object",
-                    "properties": {
-                        "latitude": { "type": "number" },
-                        "longitude": { "type": "number" }
-                    }
-                }),
-            },
-        ];
+        use rmcp::model::PaginatedRequestParam;
         
-        Ok(tools)
+        // Call MCP list_tools
+        let result = self.peer.list_tools(Some(PaginatedRequestParam { cursor: None })).await
+            .map_err(|e| anyhow::anyhow!("Failed to list tools: {}", e))?;
+        
+        // Convert rmcp::Tool to our ToolInfo
+        Ok(result.tools.into_iter().map(|tool| ToolInfo {
+            name: tool.name.to_string(),
+            description: tool.description.map(|d| d.to_string()),
+            input_schema: serde_json::Value::Object((*tool.input_schema).clone()),
+        }).collect())
     }
-    
 
     /// Call a tool on the MCP server
     pub async fn call_tool(&self, name: &str, arguments: Value) -> Result<Vec<ToolResponse>> {
-        // For now return mock responses
-        // TODO: Implement proper rmcp tool calling
-        let result = format!(
-            "Mock MCP response for {}: arguments = {}",
-            name,
-            serde_json::to_string_pretty(&arguments)?
-        );
+        use rmcp::model::CallToolRequestParam;
         
-        Ok(vec![ToolResponse::Text { text: result }])
+        // Convert Value to Option<Map> for MCP
+        let arguments_map = match arguments {
+            Value::Object(map) => Some(map),
+            _ => None,
+        };
+        
+        let param = CallToolRequestParam {
+            name: name.to_string().into(),
+            arguments: arguments_map,
+        };
+        
+        let result = self.peer.call_tool(param).await
+            .map_err(|e| anyhow::anyhow!("Failed to call tool '{}': {}", name, e))?;
+        
+        // Convert MCP content to ToolResponse
+        Ok(result.content.into_iter().map(|content| {
+            // For now, serialize all content as text
+            // In future, handle different content types properly
+            ToolResponse::Text { 
+                text: serde_json::to_string(&content).unwrap_or_else(|_| "".to_string())
+            }
+        }).collect())
+    }
+    
+    /// Get tools in format suitable for LLM (praxis_llm::Tool)
+    /// 
+    /// This fetches tools from the MCP server and converts them to the format
+    /// expected by the LLM client.
+    pub async fn get_llm_tools(&self) -> Result<Vec<praxis_llm::Tool>> {
+        let tools = self.list_tools().await?;
+        
+        Ok(tools.into_iter().map(|t| {
+            praxis_llm::Tool::new(
+                t.name,
+                t.description.unwrap_or_default(),
+                t.input_schema,
+            )
+        }).collect())
     }
 
     /// Get server name
