@@ -1,11 +1,12 @@
 use mongodb::{Client, Collection, bson::doc};
 use mongodb::bson::oid::ObjectId;
 use futures::TryStreamExt;
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 
 use crate::models::{Thread, ThreadMetadata, ThreadSummary};
 use crate::error::Result;
 
+#[derive(Clone)]
 pub struct ThreadRepository {
     collection: Collection<Thread>,
 }
@@ -27,6 +28,7 @@ impl ThreadRepository {
             user_id,
             created_at: Utc::now(),
             updated_at: Utc::now(),
+            last_summary_update: Utc::now(),
             metadata,
             summary: None,
         };
@@ -63,11 +65,13 @@ impl ThreadRepository {
         &self,
         thread_id: ObjectId,
         summary: ThreadSummary,
+        _last_summary_update: DateTime<Utc>,
     ) -> Result<()> {
         let filter = doc! { "_id": thread_id };
         let update = doc! {
             "$set": {
                 "summary": bson::to_bson(&summary)?,
+                "last_summary_update": bson::DateTime::now(),
                 "updated_at": bson::DateTime::now()
             }
         };

@@ -1,10 +1,12 @@
 use mongodb::{Client, Collection, bson::doc};
 use mongodb::bson::oid::ObjectId;
 use futures::TryStreamExt;
+use chrono::{DateTime, Utc};
 
 use crate::models::Message;
 use crate::error::Result;
 
+#[derive(Clone)]
 pub struct MessageRepository {
     collection: Collection<Message>,
 }
@@ -69,6 +71,27 @@ impl MessageRepository {
     pub async fn count_messages(&self, thread_id: ObjectId) -> Result<u64> {
         let filter = doc! { "thread_id": thread_id };
         Ok(self.collection.count_documents(filter).await?)
+    }
+    
+    /// Get messages created after a specific timestamp
+    pub async fn get_messages_after(
+        &self,
+        thread_id: ObjectId,
+        after: DateTime<Utc>,
+    ) -> Result<Vec<Message>> {
+        let filter = doc! {
+            "thread_id": thread_id,
+            "created_at": { "$gt": bson::DateTime::from_millis(after.timestamp_millis()) }
+        };
+        
+        let messages = self.collection
+            .find(filter)
+            .sort(doc! { "created_at": 1 })
+            .await?
+            .try_collect()
+            .await?;
+        
+        Ok(messages)
     }
 }
 
