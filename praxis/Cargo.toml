@@ -1,0 +1,32 @@
+[package]
+name = "praxis"
+version = "0.1.0"
+edition = "2021"
+authors = ["Praxis Team"]
+license = "MIT"
+description = "High-performance AI agent framework for Rust with streaming, MCP tools, and MongoDB persistence"
+repository = "https://github.com/your-org/praxis"
+keywords = ["ai", "agent", "llm", "mcp", "framework"]
+categories = ["web-programming", "asynchronous", "api-bindings"]
+readme = "README.md"
+
+[dependencies]
+# Re-export all praxis crates
+praxis-types = { path = "../crates/praxis-types", version = "0.1.0" }
+praxis-graph = { path = "../crates/praxis-graph", version = "0.1.0" }
+praxis-llm = { path = "../crates/praxis-llm", version = "0.1.0" }
+praxis-mcp = { path = "../crates/praxis-mcp", version = "0.1.0" }
+praxis-persist = { path = "../crates/praxis-persist", version = "0.1.0" }
+
+# Core dependencies for builder
+tokio = { workspace = true }
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+
+[features]
+default = ["full"]
+full = ["api-server"]
+api-server = []  # Future: include praxis-api as optional feature
+
+[dev-dependencies]
+tokio-test = "0.4"
