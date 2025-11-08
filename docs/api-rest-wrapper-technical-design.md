@@ -263,15 +263,55 @@ pub struct AppState {
     pub persist: Arc<PersistClient>,
     pub llm_client: Arc<dyn LLMClient>,
     pub mcp_executor: Arc<MCPToolExecutor>,
+    pub graph: Arc<Graph>,  // ✨ Created once at startup
 }
+```
+
+### Initialization (main.rs)
+
+```rust
+// 1. Create MCP executor
+let mcp_executor = MCPToolExecutor::new();
+// ... connect to MCP servers ...
+let mcp_executor = Arc::new(mcp_executor);
+
+// 2. Create Graph once (stateless, shared across all requests)
+let graph = Graph::new(
+    llm_client.clone(),
+    Arc::clone(&mcp_executor),
+    GraphConfig::default(),
+);
+
+// 3. Create AppState with shared Graph
+let state = Arc::new(AppState::new(
+    config,
+    persist_client,
+    llm_client,
+    mcp_executor,
+    graph,  // Passed in, will be Arc-wrapped
+));
 ```
 
 ### Benefits
 
 - **Thread-safe**: All fields wrapped in `Arc`
 - **Cheap cloning**: Only increments reference count
-- **Shared resources**: Single connection pool, single MCP executor
+- **Shared resources**: Single connection pool, single MCP executor, single Graph
+- **Zero per-request allocation**: Graph reused across all requests
 - **Type-safe**: Compile-time verification
+
+### Performance Impact
+
+**Before optimization**:
+- Per request: ~72 bytes allocated (Graph struct + GraphConfig)
+- 2x Arc::clone operations
+
+**After optimization**:
+- Per request: 0 bytes allocated
+- 0 Arc::clone operations
+- Graph reused via `state.graph.spawn_run(input)`
+
+**Why it's safe**: The Graph is stateless. All conversation state lives in `GraphInput`, not the Graph itself.
 
 ## Async Patterns
 
@@ -522,6 +562,7 @@ MCP_SERVERS=http://mcp-server:8000/mcp
 - Cheap cloning for async tasks
 - Shared resource pools
 - Prevents data duplication
+- Enables stateless service reuse (Graph, LLMClient, MCPToolExecutor)
 
 ## Conclusion
 

@@ -11,7 +11,6 @@ use std::sync::Arc;
 use std::str::FromStr;
 use chrono::Utc;
 
-use praxis_graph::{Graph, GraphConfig};
 use praxis_types::{StreamEvent as GraphStreamEvent, GraphInput};
 use praxis_llm::{Message as LLMMessage, Content};
 use praxis_persist::{Message as DBMessage, MessageRole, MessageType};
@@ -107,14 +106,8 @@ pub async fn send_message_stream(
         state.config.llm.clone().into(),
     );
     
-    // 6. Create graph and run
-    let graph = Graph::new(
-        Arc::clone(&state.llm_client),
-        Arc::clone(&state.mcp_executor),
-        GraphConfig::default(),
-    );
-    
-    let event_receiver = graph.spawn_run(graph_input);
+    // 6. Run graph (reuses shared Graph instance from AppState)
+    let event_receiver = state.graph.spawn_run(graph_input);
     
     // 7. Clone state for async message saving
     let persist_client = Arc::clone(&state.persist);

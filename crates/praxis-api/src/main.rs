@@ -72,12 +72,24 @@ async fn main() -> anyhow::Result<()> {
     
     tracing::info!("MongoDB connected");
     
+    // Wrap mcp_executor in Arc for sharing
+    let mcp_executor = Arc::new(mcp_executor);
+    
+    // Create graph (stateless, shared across all requests)
+    tracing::info!("Initializing Graph orchestrator");
+    let graph = praxis_graph::Graph::new(
+        llm_client.clone(),
+        Arc::clone(&mcp_executor),
+        praxis_graph::GraphConfig::default(),
+    );
+    
     // Create application state
     let state = Arc::new(AppState::new(
         config.clone(),
         persist_client,
         llm_client,
         mcp_executor,
+        graph,
     ));
     
     // Build router
