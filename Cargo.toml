@@ -6,7 +6,8 @@ members = [
     "crates/praxis-graph",
     "crates/praxis-mcp",
     "crates/praxis-persist",
-    "crates/praxis-api",
+    "crates/praxis-api",  # Example implementation (not published to crates.io)
+    "praxis",              # Meta-crate (re-exports all, published to crates.io)
     "praxis_example",
 ]
 
