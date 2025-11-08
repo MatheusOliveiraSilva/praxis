@@ -55,8 +55,6 @@ impl Node for LLMNode {
         
         // Build chat request from state
         let options = ChatOptions::new()
-            .temperature(state.llm_config.temperature.unwrap_or(0.7))
-            .max_tokens(state.llm_config.max_tokens.unwrap_or(4096))
             .tools(tools)
             .tool_choice(ToolChoice::auto());
 

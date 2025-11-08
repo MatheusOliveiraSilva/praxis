@@ -42,16 +42,17 @@ pub struct MongoDbConfig {
 #[derive(Debug, Clone, Deserialize)]
 pub struct LlmConfig {
     pub model: String,
-    pub max_tokens: usize,
     pub temperature: f32,
+    /// Max tokens for context window management (NOT sent to OpenAI)
+    pub max_tokens: usize,
 }
 
 impl From<LlmConfig> for praxis_types::LLMConfig {
     fn from(config: LlmConfig) -> Self {
         Self {
             model: config.model,
-            temperature: Some(config.temperature),
-            max_tokens: Some(config.max_tokens as u32),
+            temperature: None,  // Never send temperature to OpenAI - let it decide
+            max_tokens: None,  // Never send max_tokens to OpenAI - let it decide
         }
     }
 }
@@ -161,8 +162,8 @@ mod tests {
             
             [llm]
             model = "gpt-4"
-            max_tokens = 4096
             temperature = 0.5
+            max_tokens = 8000
             
             [mcp]
             servers = "http://localhost:8000/mcp"
