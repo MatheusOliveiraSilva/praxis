@@ -3,19 +3,34 @@ use mongodb::bson::oid::ObjectId;
 use praxis_persist::{
     PersistClient, ThreadMetadata, Message, MessageRole, MessageType,
 };
+use praxis_llm::OpenAIClient;
 use chrono::Utc;
+use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     println!("Praxis Persistence - Simple Example");
     println!("====================================\n");
     
-    // 1. Connect to MongoDB
+    // 1. Connect to MongoDB with builder API
     println!("1. Connecting to MongoDB...");
     let mongodb_uri = "mongodb://admin:password123@localhost:27017";
     let mongodb_database = "praxis";
     
-    let client = PersistClient::new(mongodb_uri, mongodb_database).await?;
+    // Get API key for LLM
+    let api_key = std::env::var("OPENAI_API_KEY")
+        .expect("OPENAI_API_KEY required for summarization");
+    
+    let llm_client = Arc::new(OpenAIClient::new(api_key)?);
+    
+    let client = PersistClient::builder()
+        .mongodb_uri(mongodb_uri)
+        .database(mongodb_database)
+        .max_tokens(30_000)
+        .llm_client(llm_client)
+        .build()
+        .await?;
+    
     println!("   ✓ Connected!\n");
     
     // 2. Create a thread

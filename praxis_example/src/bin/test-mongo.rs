@@ -3,7 +3,9 @@ use mongodb::bson::oid::ObjectId;
 use praxis_persist::{
     PersistClient, ThreadMetadata, Message, MessageRole, MessageType,
 };
+use praxis_llm::OpenAIClient;
 use chrono::Utc;
+use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -17,9 +19,21 @@ async fn main() -> Result<()> {
     let mongodb_database = std::env::var("MONGODB_DATABASE")
         .unwrap_or_else(|_| "praxis".to_string());
     
+    // Get API key for LLM (optional for testing, use dummy if not available)
+    let api_key = std::env::var("OPENAI_API_KEY")
+        .unwrap_or_else(|_| "sk-test-key".to_string());
+    
+    let llm_client = Arc::new(OpenAIClient::new(api_key)?);
+    
     // Connect to MongoDB
     print!("Connecting to {}... ", mongodb_uri);
-    let client = PersistClient::new(&mongodb_uri, &mongodb_database).await?;
+    let client = PersistClient::builder()
+        .mongodb_uri(mongodb_uri)
+        .database(&mongodb_database)
+        .max_tokens(30_000)
+        .llm_client(llm_client)
+        .build()
+        .await?;
     println!("✓");
     println!("✓ Database: {}", mongodb_database);
     println!();

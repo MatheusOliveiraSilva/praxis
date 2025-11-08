@@ -14,6 +14,7 @@ path = "src/bin/simple-example.rs"
 [dependencies]
 # Praxis crates
 praxis-persist = { path = "../crates/praxis-persist" }
+praxis-llm = { path = "../crates/praxis-llm" }
 
 # Database
 mongodb = { workspace = true }
