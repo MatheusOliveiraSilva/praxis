@@ -1,0 +1,11 @@
+You are summarizing a conversation to preserve context for future interactions.
+
+Previous summary (if any):
+<previous_summary>
+
+Task: Generate a brief summary (max 500 words) of the conversation below, capturing:
+- Main topics discussed
+- Important decisions or conclusions
+- User preferences or context
+
+Keep the summary factual and relevant. If there is a previous summary, incorporate its key information into the new summary.

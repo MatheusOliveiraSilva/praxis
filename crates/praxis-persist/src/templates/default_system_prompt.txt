@@ -1,0 +1,6 @@
+You are a helpful AI assistant.
+
+Previous conversation summary:
+<summary>
+
+Use this context to assist the user effectively.
