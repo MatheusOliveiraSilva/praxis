@@ -135,7 +135,7 @@ fn build_router(state: Arc<AppState>) -> Router {
 
 fn build_cors_layer(config: &Config) -> CorsLayer {
     if config.cors.enabled {
-        let mut cors = CorsLayer::new()
+        let cors = CorsLayer::new()
             .allow_methods([
                 axum::http::Method::GET,
                 axum::http::Method::POST,
@@ -145,16 +145,16 @@ fn build_cors_layer(config: &Config) -> CorsLayer {
             .allow_headers(Any);
         
         if config.cors.origins.iter().any(|o| o == "*") {
-            cors = cors.allow_origin(Any);
+            cors.allow_origin(Any)
         } else {
-            for origin in &config.cors.origins {
-                if let Ok(parsed_origin) = origin.parse::<axum::http::HeaderValue>() {
-                    cors = cors.allow_origin(parsed_origin);
-                }
-            }
+            // Parse all origins and collect them
+            let parsed_origins: Vec<axum::http::HeaderValue> = config.cors.origins
+                .iter()
+                .filter_map(|o| o.parse::<axum::http::HeaderValue>().ok())
+                .collect();
+            
+            cors.allow_origin(parsed_origins)
         }
-        
-        cors
     } else {
         CorsLayer::permissive()
     }
