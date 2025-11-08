@@ -13,7 +13,7 @@ export class ToolResultHandler extends BaseEventHandler<ToolResultEventData> {
     if (newState.streamingToolCall) {
       newState.streamingToolCall.status = 'completed'
       newState.streamingToolCall.result = data.result
-      newState.toolCalls.push({ ...newState.streamingToolCall })
+      newState.items.push({ ...newState.streamingToolCall })
       newState.streamingToolCall = null
     }
     

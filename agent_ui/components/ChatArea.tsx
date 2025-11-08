@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, KeyboardEvent } from 'react'
 import { Thread } from '@/types'
+import { UIMessage, UIToolCall } from '@/types/events'
 import { useChat } from '@/hooks/useChat'
 import { MessageRenderer } from './messages/MessageRenderer'
 import { ToolCallRenderer } from './tools/ToolCallRenderer'
@@ -47,7 +48,7 @@ export default function ChatArea({ thread, onThreadUpdate, onThreadCreated }: Ch
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [chatState.messages, chatState.streamingMessage, chatState.toolCalls, chatState.streamingToolCall])
+  }, [chatState.items, chatState.streamingMessage, chatState.streamingToolCall])
   
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -108,8 +109,8 @@ export default function ChatArea({ thread, onThreadUpdate, onThreadCreated }: Ch
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto scrollbar-thin px-6 py-6">
-        {/* Welcome screen (only if no thread and no messages) */}
-        {!thread && chatState.messages.length === 0 && !chatState.isStreaming && (
+        {/* Welcome screen (only if no thread and no items) */}
+        {!thread && chatState.items.length === 0 && !chatState.isStreaming && (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <MessageSquareIcon className="w-20 h-20 mb-6 text-praxis-accent opacity-60" />
             <h2 className="text-2xl font-semibold mb-3">Bem-vindo ao Praxis</h2>
@@ -119,15 +120,14 @@ export default function ChatArea({ thread, onThreadUpdate, onThreadCreated }: Ch
           </div>
         )}
 
-        {/* Render committed messages (O(n) with memoization) */}
-        {chatState.messages.map((message) => (
-          <MessageRenderer key={message.id} message={message} />
-        ))}
-
-        {/* Render committed tool calls */}
-        {chatState.toolCalls.map((toolCall) => (
-          <ToolCallRenderer key={toolCall.id} toolCall={toolCall} />
-        ))}
+        {/* Render all items in chronological order */}
+        {chatState.items.map((item) => {
+          if (item.itemType === 'message') {
+            return <MessageRenderer key={item.id} message={item as UIMessage} />
+          } else {
+            return <ToolCallRenderer key={item.id} toolCall={item as UIToolCall} />
+          }
+        })}
 
         {/* Render streaming tool call */}
         {chatState.streamingToolCall && (
@@ -139,6 +139,7 @@ export default function ChatArea({ thread, onThreadUpdate, onThreadCreated }: Ch
           <MessageRenderer 
             key="streaming-message" 
             message={{
+              itemType: 'message',
               id: 'streaming',
               type: chatState.streamingMessage.type,
               content: chatState.streamingMessage.content,
@@ -151,8 +152,9 @@ export default function ChatArea({ thread, onThreadUpdate, onThreadCreated }: Ch
         {chatState.isStreaming && 
          !chatState.streamingMessage && 
          !chatState.streamingToolCall &&
-         chatState.messages.length > 0 && 
-         chatState.messages[chatState.messages.length - 1].type === 'user' && (
+         chatState.items.length > 0 && 
+         chatState.items[chatState.items.length - 1].itemType === 'message' &&
+         (chatState.items[chatState.items.length - 1] as UIMessage).type === 'user' && (
           <TypingIndicator />
         )}
 

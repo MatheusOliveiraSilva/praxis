@@ -47,10 +47,12 @@ export interface ErrorEventData {
   [key: string]: unknown
 }
 
-// UI State Types
+// UI Types
 export type MessageType = 'user' | 'assistant' | 'reasoning'
+export type ItemType = 'message' | 'tool_call'
 
 export interface UIMessage {
+  itemType: 'message'
   id: string
   type: MessageType
   content: string
@@ -58,6 +60,7 @@ export interface UIMessage {
 }
 
 export interface UIToolCall {
+  itemType: 'tool_call'
   id: string
   index: number
   name: string
@@ -67,6 +70,9 @@ export interface UIToolCall {
   timestamp: Date
 }
 
+// Union type for all items
+export type ChatItem = UIMessage | UIToolCall
+
 // Streaming state
 export interface StreamingMessage {
   type: MessageType
@@ -74,12 +80,10 @@ export interface StreamingMessage {
 }
 
 export interface ChatState {
-  // Committed messages (finalized)
-  messages: UIMessage[]
+  // Unified items array (chronologically ordered)
+  items: ChatItem[]
   // Currently streaming message (being accumulated)
   streamingMessage: StreamingMessage | null
-  // Tool calls (separate from messages)
-  toolCalls: UIToolCall[]
   // Currently streaming tool call
   streamingToolCall: UIToolCall | null
   // Stream state

@@ -17,11 +17,10 @@ export class DoneHandler extends BaseEventHandler<DoneEventData> {
       } else {
         newState.streamingToolCall.status = 'error'
       }
-      newState.toolCalls.push({ ...newState.streamingToolCall })
+      newState.items.push({ ...newState.streamingToolCall })
       newState.streamingToolCall = null
     }
     
     return newState
   }
 }
-

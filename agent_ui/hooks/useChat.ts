@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import { ChatState, UIMessage } from '@/types/events'
+import { ChatState, UIMessage, ChatItem } from '@/types/events'
 import { Message, Thread } from '@/types'
 import { StreamProcessor } from '@/lib/stream-processor'
 
@@ -19,9 +19,8 @@ interface UseChatOptions {
 export function useChat({ thread, onThreadCreated, onThreadUpdate }: UseChatOptions) {
   // Chat state (optimized with single state object)
   const [chatState, setChatState] = useState<ChatState>({
-    messages: [],
+    items: [],
     streamingMessage: null,
-    toolCalls: [],
     streamingToolCall: null,
     isStreaming: false,
     error: null
@@ -40,8 +39,9 @@ export function useChat({ thread, onThreadCreated, onThreadUpdate }: UseChatOpti
       )
       const data = await response.json()
       
-      // Convert DB messages to UI messages
-      const uiMessages: UIMessage[] = (data.messages || []).map((msg: Message) => ({
+      // Convert DB messages to UI items
+      const items: ChatItem[] = (data.messages || []).map((msg: Message): UIMessage => ({
+        itemType: 'message',
         id: msg._id,
         type: msg.role === 'user' ? 'user' as const : 'assistant' as const,
         content: msg.content,
@@ -50,9 +50,8 @@ export function useChat({ thread, onThreadCreated, onThreadUpdate }: UseChatOpti
       
       setChatState(prev => ({
         ...prev,
-        messages: uiMessages,
+        items,
         streamingMessage: null,
-        toolCalls: [],
         streamingToolCall: null
       }))
     } catch (error) {
@@ -101,6 +100,7 @@ export function useChat({ thread, onThreadCreated, onThreadUpdate }: UseChatOpti
     
     // Add user message
     const userMessage: UIMessage = {
+      itemType: 'message',
       id: `${Date.now()}-user`,
       type: 'user',
       content,
@@ -109,9 +109,8 @@ export function useChat({ thread, onThreadCreated, onThreadUpdate }: UseChatOpti
     
     setChatState(prev => ({
       ...prev,
-      messages: [...prev.messages, userMessage],
+      items: [...prev.items, userMessage],
       streamingMessage: null,
-      toolCalls: [],
       streamingToolCall: null,
       isStreaming: true,
       error: null
@@ -148,7 +147,7 @@ export function useChat({ thread, onThreadCreated, onThreadUpdate }: UseChatOpti
       let currentState = chatState
       currentState = {
         ...currentState,
-        messages: [...currentState.messages, userMessage],
+        items: [...currentState.items, userMessage],
         isStreaming: true
       }
       
@@ -187,9 +186,8 @@ export function useChat({ thread, onThreadCreated, onThreadUpdate }: UseChatOpti
    */
   const clearChat = useCallback(() => {
     setChatState({
-      messages: [],
+      items: [],
       streamingMessage: null,
-      toolCalls: [],
       streamingToolCall: null,
       isStreaming: false,
       error: null

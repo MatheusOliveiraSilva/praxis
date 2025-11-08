@@ -1,4 +1,4 @@
-import { SSEEventData, ChatState, UIMessage, StreamingMessage, MessageType } from '@/types/events'
+import { SSEEventData, ChatState, UIMessage, StreamingMessage, MessageType, ChatItem } from '@/types/events'
 
 /**
  * Base handler interface for SSE events
@@ -22,8 +22,7 @@ export abstract class BaseEventHandler<T extends SSEEventData = SSEEventData>
   protected cloneState(state: ChatState): ChatState {
     return {
       ...state,
-      messages: [...state.messages],
-      toolCalls: [...state.toolCalls]
+      items: [...state.items]
     }
   }
   
@@ -35,7 +34,7 @@ export abstract class BaseEventHandler<T extends SSEEventData = SSEEventData>
   }
   
   /**
-   * Commit streaming message to messages array
+   * Commit streaming message to items array
    * Called when type changes or stream ends
    */
   protected commitStreamingMessage(state: ChatState): ChatState {
@@ -44,6 +43,7 @@ export abstract class BaseEventHandler<T extends SSEEventData = SSEEventData>
     }
     
     const newMessage: UIMessage = {
+      itemType: 'message',
       id: this.generateId(),
       type: state.streamingMessage.type,
       content: state.streamingMessage.content,
@@ -52,7 +52,7 @@ export abstract class BaseEventHandler<T extends SSEEventData = SSEEventData>
     
     return {
       ...state,
-      messages: [...state.messages, newMessage],
+      items: [...state.items, newMessage],
       streamingMessage: null
     }
   }

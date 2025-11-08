@@ -24,11 +24,12 @@ export class ToolCallHandler extends BaseEventHandler<ToolCallEventData> {
     } else {
       // Commit previous tool call if exists
       if (newState.streamingToolCall) {
-        newState.toolCalls.push({ ...newState.streamingToolCall })
+        newState.items.push({ ...newState.streamingToolCall })
       }
       
       // Start new streaming tool call
       newState.streamingToolCall = {
+        itemType: 'tool_call',
         id: data.id || this.generateId(),
         index,
         name: data.name || '',
