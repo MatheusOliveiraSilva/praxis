@@ -1,8 +1,11 @@
 use mongodb::Client;
+use std::sync::Arc;
+use praxis_llm::LLMClient;
 
 use crate::repositories::{ThreadRepository, MessageRepository};
 use crate::context::ContextManager;
 use crate::error::{Result, PersistError};
+use crate::builder::PersistClientBuilder;
 
 pub struct PersistClient {
     thread_repo: ThreadRepository,
@@ -11,19 +14,32 @@ pub struct PersistClient {
 }
 
 impl PersistClient {
-    pub async fn new(mongodb_uri: &str, db_name: &str) -> Result<Self> {
-        let client = Client::with_uri_str(mongodb_uri)
+    /// Create builder for fluent API
+    pub fn builder() -> PersistClientBuilder {
+        PersistClientBuilder::new()
+    }
+    
+    /// Internal constructor (called by builder)
+    pub(crate) async fn new_with_config(
+        mongodb_uri: String,
+        database: String,
+        max_tokens: usize,
+        llm_client: Arc<dyn LLMClient>,
+        system_prompt_template: String,
+    ) -> Result<Self> {
+        let client = Client::with_uri_str(&mongodb_uri)
             .await
             .map_err(|e| PersistError::Connection(e.to_string()))?;
         
-        let thread_repo = ThreadRepository::new(&client, db_name);
-        let message_repo = MessageRepository::new(&client, db_name);
+        let thread_repo = ThreadRepository::new(&client, &database);
+        let message_repo = MessageRepository::new(&client, &database);
         
-        // Default max_tokens for context window (8000 tokens)
         let context_manager = ContextManager::new(
-            ThreadRepository::new(&client, db_name),
-            MessageRepository::new(&client, db_name),
-            8000,
+            ThreadRepository::new(&client, &database),
+            MessageRepository::new(&client, &database),
+            max_tokens,
+            llm_client,
+            system_prompt_template,
         );
         
         Ok(Self {
