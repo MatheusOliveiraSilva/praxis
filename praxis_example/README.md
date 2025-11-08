@@ -69,7 +69,10 @@ Copy `.env.example` to `.env` and configure:
 ```bash
 MONGODB_URI=mongodb://admin:password123@localhost:27017
 MONGODB_DATABASE=praxis
+OPENAI_API_KEY=your_api_key_here  # Required for LLM summarization
 ```
+
+**Note**: The OpenAI API key is required for the automatic summarization feature. When the conversation exceeds the configured token limit (default: 30,000 tokens), the system will automatically generate a summary of previous messages using GPT-4o-mini.
 
 ## Collections
 
@@ -166,12 +169,104 @@ Make sure Docker is running:
 docker info
 ```
 
+## Usage Example
+
+### Basic Usage with Builder Pattern
+
+```rust
+use praxis_persist::PersistClient;
+use praxis_llm::OpenAIClient;
+use std::sync::Arc;
+
+// Create LLM client for summarization
+let llm_client = Arc::new(OpenAIClient::new(api_key)?);
+
+// Build PersistClient with custom configuration
+let client = PersistClient::builder()
+    .mongodb_uri("mongodb://admin:password123@localhost:27017")
+    .database("praxis")
+    .max_tokens(30_000)  // Token limit before summarization
+    .llm_client(llm_client)
+    .build()
+    .await?;
+
+// Create a thread
+let thread = client.threads()
+    .create_thread("user_123".to_string(), metadata)
+    .await?;
+
+// Save messages
+client.messages()
+    .save_message(message)
+    .await?;
+
+// Get context window (with automatic summarization if needed)
+let (messages, system_prompt) = client.context()
+    .get_context_window(thread.id)
+    .await?;
+```
+
+### Customizing System Prompt Template
+
+```rust
+// Using custom template string
+let client = PersistClient::builder()
+    .mongodb_uri(uri)
+    .database("praxis")
+    .llm_client(llm_client)
+    .system_prompt_template("Custom prompt with <summary> placeholder")
+    .build()
+    .await?;
+
+// Or loading from file
+let client = PersistClient::builder()
+    .mongodb_uri(uri)
+    .database("praxis")
+    .llm_client(llm_client)
+    .system_prompt_template_file("prompts/system.txt")?
+    .build()
+    .await?;
+```
+
+### How Async Summarization Works
+
+1. When `get_context_window()` is called, the system checks token count
+2. If tokens exceed `max_tokens`, an async task is spawned to generate a summary
+3. The current request returns immediately with existing data
+4. Summary generation happens in the background using GPT-4o-mini
+5. The summary is saved to MongoDB with a timestamp (`last_summary_update`)
+6. Future calls use the summary and only load messages after `last_summary_update`
+7. If the window grows again, the process repeats (incremental summarization)
+
+This ensures:
+- **No blocking**: Users never wait for summarization
+- **Scalability**: Conversations can be arbitrarily long
+- **Cost efficiency**: Only new messages are summarized each time
+- **Context preservation**: Summaries include previous summary content
+
 ## Next Steps
 
 This example serves as the foundation for:
 1. **praxis-api**: REST API with SSE streaming
 2. **praxis-dx**: CLI tools and configuration management
 3. Full agent implementation with persistence
+
+## Key Features
+
+### Builder Pattern API
+- Fluent, type-safe configuration
+- Required fields enforced at compile time
+- Optional fields with sensible defaults
+
+### Async Background Summarization
+- Non-blocking: context retrieval never waits for summarization
+- Incremental: only new messages are summarized
+- Configurable token limits
+
+### Template System
+- Embedded default templates
+- Customizable via string or file
+- `<summary>` placeholder replacement
 
 ## License
 
