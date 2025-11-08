@@ -1,0 +1,33 @@
+[package]
+name = "praxis-persist"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+# Database
+mongodb = { workspace = true }
+bson = { workspace = true }
+
+# Async runtime
+tokio = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Date/time
+chrono = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+thiserror = "2.0"
+
+# Async utilities
+futures = { workspace = true }
+
+# Logging
+tracing = "0.1"
+
