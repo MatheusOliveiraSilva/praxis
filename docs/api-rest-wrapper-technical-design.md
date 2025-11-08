@@ -109,7 +109,7 @@ StreamHandler::send_message_stream
 2. Save user message to MongoDB
 3. Get context window (messages + summary)
 4. Create GraphInput with LLM messages
-5. Spawn Graph execution (background task)
+5. Run state.graph.spawn_run() (reuses shared Graph)
 6. Convert Receiver<StreamEvent> to SSE stream
 7. Map Graph events to SSE events
 8. Save assistant responses asynchronously
