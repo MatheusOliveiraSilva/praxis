@@ -66,29 +66,25 @@ Replaced stub implementation with actual LLM calls:
 
 **Flow**:
 1. Filter messages (only `MessageType::Message`, skip tool calls)
-2. Format conversation as "Role: Content" pairs
-3. Build summarization prompt using embedded template
-4. Call LLM (GPT-4o-mini for cost efficiency)
-5. Stream response and collect text
+2. Build system message from embedded template with `<previous_summary>` replacement
+3. Convert DB messages to proper `Message::Human` and `Message::AI` structure
+4. Call LLM with non-streaming request (GPT-4o-mini for cost efficiency)
+5. Extract summary text from response
 6. Create `ThreadSummary` with metadata
 
-**Prompt Template**:
+**Embedded Template** (`default_summarization.txt`):
 ```text
-Summarize the following conversation concisely, focusing on key information 
-that will be useful for future interactions.
+You are summarizing a conversation to preserve context for future interactions.
 
 Previous summary (if any):
 <previous_summary>
 
-Recent conversation to summarize:
-<conversation>
-
-Generate a brief summary (max 500 words) capturing:
+Task: Generate a brief summary (max 500 words) of the conversation below, capturing:
 - Main topics discussed
 - Important decisions or conclusions
 - User preferences or context
 
-Keep the summary factual and relevant for continuing the conversation.
+Keep the summary factual and relevant. If there is a previous summary, incorporate its key information into the new summary.
 ```
 
 ### Async Background Summarization
