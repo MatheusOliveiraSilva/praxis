@@ -1,0 +1,67 @@
+[package]
+name = "praxis-api"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "praxis-api"
+path = "src/main.rs"
+
+[dependencies]
+# Praxis crates
+praxis-graph = { path = "../praxis-graph" }
+praxis-persist = { path = "../praxis-persist" }
+praxis-llm = { path = "../praxis-llm" }
+praxis-mcp = { path = "../praxis-mcp" }
+praxis-types = { path = "../praxis-types" }
+
+# Axum & HTTP
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["trace", "cors", "compression-gzip", "timeout"] }
+
+# SSE
+axum-streams = "0.11"
+
+# Async
+tokio = { workspace = true }
+tokio-stream = { version = "0.1", features = ["sync"] }
+futures = { workspace = true }
+async-stream = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Config
+config = "0.14"
+toml = "0.8"
+
+# Error handling
+anyhow = { workspace = true }
+thiserror = "2.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# MongoDB
+mongodb = { workspace = true }
+bson = { workspace = true }
+
+# Date/time
+chrono = { workspace = true }
+
+# UUID
+uuid = { workspace = true }
+
+# OpenAPI
+utoipa = { version = "4", features = ["axum_extras", "chrono", "uuid"] }
+utoipa-swagger-ui = { version = "6", features = ["axum"] }
+
+# Environment
+dotenvy = "0.15"
+

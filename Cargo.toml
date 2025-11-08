@@ -6,6 +6,7 @@ members = [
     "crates/praxis-graph",
     "crates/praxis-mcp",
     "crates/praxis-persist",
+    "crates/praxis-api",
     "praxis_example",
 ]
 
