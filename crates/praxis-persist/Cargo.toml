@@ -7,6 +7,10 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+# Praxis crates
+praxis-llm = { path = "../praxis-llm" }
+praxis-types = { path = "../praxis-types" }
+
 # Database
 mongodb = { workspace = true }
 bson = { workspace = true }

@@ -25,6 +25,9 @@ pub enum PersistError {
     
     #[error("Internal error: {0}")]
     Internal(String),
+    
+    #[error("LLM error: {0}")]
+    LLM(#[from] anyhow::Error),
 }
 
 pub type Result<T> = std::result::Result<T, PersistError>;
