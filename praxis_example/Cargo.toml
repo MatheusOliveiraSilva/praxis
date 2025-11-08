@@ -1,0 +1,33 @@
+[package]
+name = "praxis-example"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "test-mongo"
+path = "src/bin/test-mongo.rs"
+
+[[bin]]
+name = "simple-example"
+path = "src/bin/simple-example.rs"
+
+[dependencies]
+# Praxis crates
+praxis-persist = { path = "../crates/praxis-persist" }
+
+# Database
+mongodb = { workspace = true }
+bson = { workspace = true }
+
+# Async runtime
+tokio = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+
+# Date/time
+chrono = { workspace = true }
+
+# Environment variables
+dotenv = "0.15"
+
