@@ -198,8 +198,21 @@ export default function ChatArea({ thread, onThreadUpdate, onThreadCreated }: Ch
         }
       }
 
-      // Reload messages after stream completes
-      await loadMessages()
+      // Add the complete assistant message to the list before clearing
+      if (currentAssistantMessage) {
+        const assistantMsg: Message = {
+          _id: (Date.now() + 1).toString(),
+          thread_id: activeThread._id,
+          user_id: 'assistant',
+          role: 'assistant',
+          content: currentAssistantMessage,
+          created_at: new Date().toISOString()
+        }
+        setMessages(prev => [...prev, assistantMsg])
+      }
+      
+      // Reload messages after stream completes (in background)
+      loadMessages()
     } catch (error) {
       console.error('Error sending message:', error)
       alert('Erro ao enviar mensagem. Verifique se a API está rodando.')
