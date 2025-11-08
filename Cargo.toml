@@ -5,6 +5,8 @@ members = [
     "crates/praxis-types",
     "crates/praxis-graph",
     "crates/praxis-mcp",
+    "crates/praxis-persist",
+    "praxis_example",
 ]
 
 [workspace.package]
@@ -25,4 +27,6 @@ futures = "0.3"
 async-stream = "0.3"
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4", "serde"] }
+mongodb = "3.1"
+bson = "2.13"
 
