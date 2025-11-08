@@ -550,9 +550,6 @@ See individual crate READMEs for detailed contribution guidelines:
 - [praxis-graph/README.md](crates/praxis-graph/README.md)
 - [agent_ui/README.md](agent_ui/README.md)
 
-## 📄 License
-
-[Your License Here]
 
 ## 🙏 Acknowledgments
 
