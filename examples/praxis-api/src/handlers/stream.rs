@@ -64,7 +64,7 @@ pub async fn send_message_stream(
     
     // 3. Get context using strategy (BEFORE Graph execution)
     let context_window = state.context_strategy
-        .get_context_window(&thread_id, &*state.persist)
+        .get_context_window(&thread_id, Arc::clone(&state.persist))
         .await?;
     
     // 4. Build full message history
