@@ -56,9 +56,9 @@ impl DefaultContextStrategy {
         Ok(total_tokens)
     }
     
-    /// Generate summary of old messages.
-    async fn generate_summary(&self, messages: &[DBMessage], previous_summary: Option<&str>) -> Result<String> {
-        let conversation = messages.iter()
+    /// Build conversation text from messages
+    fn build_conversation_text(messages: &[DBMessage]) -> String {
+        messages.iter()
             .map(|m| {
                 let role = match m.role {
                     praxis_persist::MessageRole::User => "User",
@@ -67,10 +67,14 @@ impl DefaultContextStrategy {
                 format!("{}: {}", role, m.content)
             })
             .collect::<Vec<_>>()
-            .join("\n");
+            .join("\n")
+    }
+    
+    /// Generate summary of old messages
+    async fn generate_summary(&self, messages: &[DBMessage], previous_summary: Option<&str>) -> Result<String> {
+        let conversation = Self::build_conversation_text(messages);
         
-        let previous_summary_text = previous_summary
-            .unwrap_or("Não temos resumo ainda.");
+        let previous_summary_text = previous_summary.unwrap_or("Não temos resumo ainda.");
         
         let summary_prompt = self.summarization_template
             .replace("<previous_summary>", previous_summary_text)
@@ -105,7 +109,7 @@ impl ContextStrategy for DefaultContextStrategy {
         thread_id: &str,
         persist_client: Arc<dyn PersistenceClient>,
     ) -> Result<ContextWindow> {
-        // 1. Get thread (must exist - frontend should create it before sending first message)
+        // 1. Get thread
         let thread = persist_client.get_thread(thread_id).await?
             .ok_or_else(|| anyhow::anyhow!("Thread {} not found - should be created before sending messages", thread_id))?;
         
@@ -114,10 +118,8 @@ impl ContextStrategy for DefaultContextStrategy {
             .get_messages_after(thread_id, thread.last_summary_update)
             .await?;
         
+        let existing_summary = thread.summary.as_ref().map(|s| s.text.as_str());
         if messages_to_evaluate.is_empty() {
-            // Extract summary text if exists (for prompt)
-            let existing_summary = thread.summary.as_ref().map(|s| s.text.as_str());
-            
             return Ok(ContextWindow {
                 system_prompt: self.build_system_prompt(existing_summary),
                 messages: vec![],
@@ -127,10 +129,7 @@ impl ContextStrategy for DefaultContextStrategy {
         // 3. Count tokens of CURRENT WINDOW
         let current_window_tokens = self.count_tokens(&messages_to_evaluate)?;
         
-        // 4. Extract existing summary (if any)
-        let existing_summary = thread.summary.as_ref().map(|s| s.text.as_str());
-        
-        // 5. If current window exceeds max_tokens, spawn async summary generation
+        // 4. If current window exceeds max_tokens, spawn async summary generation
         if current_window_tokens > self.max_tokens {
             // Clone everything needed for fire-and-forget task
             let messages_clone = messages_to_evaluate.clone();
@@ -142,17 +141,8 @@ impl ContextStrategy for DefaultContextStrategy {
             
             // Fire and forget - spawn task to generate and save new summary
             tokio::spawn(async move {
-                // Build conversation text
-                let conversation = messages_clone.iter()
-                    .map(|m| {
-                        let role = match m.role {
-                            praxis_persist::MessageRole::User => "User",
-                            praxis_persist::MessageRole::Assistant => "Assistant",
-                        };
-                        format!("{}: {}", role, m.content)
-                    })
-                    .collect::<Vec<_>>()
-                    .join("\n");
+                // Build conversation text using shared helper
+                let conversation = DefaultContextStrategy::build_conversation_text(&messages_clone);
                 
                 // Build summary prompt
                 let previous_text = previous_summary.as_deref().unwrap_or("Não temos resumo ainda.");
@@ -160,7 +150,7 @@ impl ContextStrategy for DefaultContextStrategy {
                     .replace("<previous_summary>", previous_text)
                     .replace("<conversation>", &conversation);
                 
-                // Generate summary
+                // Generate summary via LLM
                 let request = praxis_llm::ChatRequest::new(
                     "gpt-4o-mini".to_string(),
                     vec![Message::Human {
@@ -173,7 +163,6 @@ impl ContextStrategy for DefaultContextStrategy {
                 if let Ok(response) = llm_client.chat_completion(request).await {
                     if let Some(summary_text) = response.content {
                         let summary_time = Utc::now();
-                        // Save to database (fire and forget - ignore errors)
                         let _ = persist_client_clone.save_thread_summary(
                             &thread_id_owned,
                             summary_text,
