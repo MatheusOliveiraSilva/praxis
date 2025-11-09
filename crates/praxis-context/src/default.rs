@@ -4,14 +4,14 @@ use async_trait::async_trait;
 use tiktoken_rs::cl100k_base;
 use chrono::Utc;
 
-use praxis_llm::{LLMClient, Message, Content};
+use praxis_llm::{ChatClient, Message, Content};
 use praxis_persist::{PersistenceClient, DBMessage};
 use crate::strategy::{ContextStrategy, ContextWindow};
 use crate::templates::{DEFAULT_SYSTEM_PROMPT_TEMPLATE, DEFAULT_SUMMARIZATION_PROMPT};
 
 pub struct DefaultContextStrategy {
     max_tokens: usize,
-    llm_client: Arc<dyn LLMClient>,
+    llm_client: Arc<dyn ChatClient>,
     system_prompt_template: String,
     summarization_template: String,
 }
@@ -19,7 +19,7 @@ pub struct DefaultContextStrategy {
 impl DefaultContextStrategy {
     pub fn new(
         max_tokens: usize,
-        llm_client: Arc<dyn LLMClient>,
+        llm_client: Arc<dyn ChatClient>,
     ) -> Self {
         Self {
             max_tokens,
@@ -31,7 +31,7 @@ impl DefaultContextStrategy {
     
     pub fn with_templates(
         max_tokens: usize,
-        llm_client: Arc<dyn LLMClient>,
+        llm_client: Arc<dyn ChatClient>,
         system_prompt_template: String,
         summarization_template: String,
     ) -> Self {

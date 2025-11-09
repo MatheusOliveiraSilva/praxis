@@ -1,12 +1,12 @@
 [package]
 name = "praxis-persist"
-version.workspace = true
-edition.workspace = true
-authors.workspace = true
-license.workspace = true
-repository.workspace = true
-homepage.workspace = true
-documentation.workspace = true
+version = "0.1.1"
+edition = "2021"
+authors = ["Praxis Team"]
+license = "MIT"
+repository = "https://github.com/matheussilva/praxis"
+homepage = "https://github.com/matheussilva/praxis"
+documentation = "https://docs.rs/praxis-persist"
 description = "MongoDB persistence layer for AI agent conversations with context management"
 keywords = ["ai", "mongodb", "persistence", "database", "async"]
 categories = ["asynchronous", "database"]
@@ -21,29 +21,29 @@ mongodb = ["dep:mongodb", "dep:bson"]
 praxis-llm = { version = "0.1.0", path = "../praxis-llm" }
 
 # Database (optional)
-mongodb = { workspace = true, optional = true }
-bson = { workspace = true, optional = true }
+mongodb = { version = "3.1", optional = true }
+bson = { version = "2.13", optional = true }
 
 # Async runtime
-tokio = { workspace = true }
+tokio = { version = "1", features = ["full"] }
 async-trait = "0.1"
 
 # Serialization
-serde = { workspace = true }
-serde_json = { workspace = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 
 # Date/time
-chrono = { workspace = true }
+chrono = { version = "0.4", features = ["serde"] }
 
 # UUID generation
 uuid = { version = "1.0", features = ["v4", "serde"] }
 
 # Error handling
-anyhow = { workspace = true }
+anyhow = "1"
 thiserror = "2.0"
 
 # Async utilities
-futures = { workspace = true }
+futures = "0.3"
 
 # Logging
 tracing = "0.1"
