@@ -127,7 +127,7 @@ pub fn parse_chat_sse_stream(
     
     Box::pin(async_stream::stream! {
         let mut byte_chunks = Box::pin(stream);
-        let mut buffer = VecDeque::with_capacity(8192);
+        let mut buffer = VecDeque::with_capacity(4096);
         
         while let Some(chunk_result) = byte_chunks.next().await {
             match chunk_result {
