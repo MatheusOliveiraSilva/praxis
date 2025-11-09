@@ -134,41 +134,27 @@ impl ContextStrategy for DefaultContextStrategy {
             // Clone everything needed for fire-and-forget task
             let messages_clone = messages_to_evaluate.clone();
             let previous_summary = existing_summary.map(|s| s.to_string());
-            let llm_client = self.llm_client.clone();
-            let summarization_template = self.summarization_template.clone();
             let persist_client_clone = Arc::clone(&persist_client);
             let thread_id_owned = thread_id.to_string();
             
-            // Fire and forget - spawn task to generate and save new summary
+            // Clone strategy fields to recreate context in async task
+            let strategy = Self {
+                max_tokens: self.max_tokens,
+                llm_client: self.llm_client.clone(),
+                system_prompt_template: self.system_prompt_template.clone(),
+                summarization_template: self.summarization_template.clone(),
+            };
+            
             tokio::spawn(async move {
-                // Build conversation text using shared helper
-                let conversation = DefaultContextStrategy::build_conversation_text(&messages_clone);
-                
-                // Build summary prompt
-                let previous_text = previous_summary.as_deref().unwrap_or("Não temos resumo ainda.");
-                let summary_prompt = summarization_template
-                    .replace("<previous_summary>", previous_text)
-                    .replace("<conversation>", &conversation);
-                
-                // Generate summary via LLM
-                let request = praxis_llm::ChatRequest::new(
-                    "gpt-4o-mini".to_string(),
-                    vec![Message::Human {
-                        content: Content::text(summary_prompt),
-                        name: None,
-                    }],
-                );
-                
-                // Call LLM and save summary
-                if let Ok(response) = llm_client.chat_completion(request).await {
-                    if let Some(summary_text) = response.content {
+                if let Ok(summary_text) = strategy
+                    .generate_summary(&messages_clone, previous_summary.as_deref())
+                    .await {
                         let summary_time = Utc::now();
                         let _ = persist_client_clone.save_thread_summary(
                             &thread_id_owned,
                             summary_text,
                             summary_time
                         ).await;
-                    }
                 }
             });
         }
