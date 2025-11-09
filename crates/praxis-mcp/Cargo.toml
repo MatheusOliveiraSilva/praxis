@@ -5,6 +5,12 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+description = "Model Context Protocol (MCP) client for AI agent tool execution"
+keywords = ["ai", "mcp", "tools", "agent", "async"]
+categories = ["asynchronous", "api-bindings"]
+readme = "README.md"
 
 [dependencies]
 rmcp = { version = "0.8.0", features = [

@@ -16,7 +16,9 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Praxis Team"]
 license = "MIT"
-repository = "https://github.com/your-org/praxis"
+repository = "https://github.com/matheussilva/praxis"
+homepage = "https://github.com/matheussilva/praxis"
+documentation = "https://docs.rs/praxis-graph"
 
 [workspace.dependencies]
 tokio = { version = "1", features = ["full"] }

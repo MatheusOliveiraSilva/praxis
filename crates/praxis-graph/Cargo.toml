@@ -5,6 +5,12 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+description = "React agent orchestrator for building AI agent workflows with LLM and tool execution"
+keywords = ["ai", "agent", "workflow", "orchestrator", "react"]
+categories = ["asynchronous", "development-tools"]
+readme = "README.md"
 
 [dependencies]
 praxis-types = { path = "../praxis-types" }

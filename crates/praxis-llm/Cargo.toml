@@ -5,6 +5,12 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+description = "Provider-agnostic LLM client with OpenAI/Azure support and streaming"
+keywords = ["ai", "llm", "openai", "streaming", "async"]
+categories = ["asynchronous", "api-bindings", "web-programming"]
+readme = "README.md"
 
 [dependencies]
 tokio.workspace = true

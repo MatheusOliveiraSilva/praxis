@@ -5,6 +5,12 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+description = "Core types and event model for Praxis AI agent framework"
+keywords = ["ai", "agent", "llm", "framework", "async"]
+categories = ["asynchronous", "development-tools"]
+readme = "README.md"
 
 [dependencies]
 praxis-llm = { path = "../praxis-llm" }

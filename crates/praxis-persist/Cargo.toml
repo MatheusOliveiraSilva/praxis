@@ -5,6 +5,12 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+description = "MongoDB persistence layer for AI agent conversations with context management"
+keywords = ["ai", "mongodb", "persistence", "database", "async"]
+categories = ["asynchronous", "database"]
+readme = "README.md"
 
 [dependencies]
 # Praxis crates
