@@ -10,7 +10,6 @@ name = "praxis-api"
 path = "src/main.rs"
 
 [dependencies]
-# Praxis crates (from crates.io)
 praxis-graph = "0.1.0"
 praxis-persist = "0.1.0"
 praxis-llm = "0.1.0"
