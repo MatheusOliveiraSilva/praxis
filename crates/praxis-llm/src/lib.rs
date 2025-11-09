@@ -14,6 +14,7 @@ pub use traits::{
 };
 
 pub use streaming::StreamEvent;
+pub use streaming::{CircularLineBuffer, EventBatcher};
 pub use openai::OpenAIClient;
 pub use openai::{ReasoningConfig, ReasoningEffort, SummaryMode};
 pub use types::{Message, Content, Tool, ToolCall, ToolChoice};
