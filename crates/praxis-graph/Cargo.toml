@@ -13,9 +13,9 @@ categories = ["asynchronous", "development-tools"]
 readme = "README.md"
 
 [dependencies]
-praxis-types = { path = "../praxis-types" }
-praxis-llm = { path = "../praxis-llm" }
-praxis-mcp = { path = "../praxis-mcp" }
+praxis-types = { version = "0.1.0", path = "../praxis-types" }
+praxis-llm = { version = "0.1.0", path = "../praxis-llm" }
+praxis-mcp = { version = "0.1.0", path = "../praxis-mcp" }
 tokio.workspace = true
 anyhow.workspace = true
 async-trait.workspace = true

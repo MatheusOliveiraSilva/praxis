@@ -21,7 +21,7 @@ rmcp = { version = "0.8.0", features = [
     "client-side-sse",
     "reqwest",
 ] }
-praxis-llm = { path = "../praxis-llm" }
+praxis-llm = { version = "0.1.0", path = "../praxis-llm" }
 tokio.workspace = true
 anyhow.workspace = true
 async-trait.workspace = true

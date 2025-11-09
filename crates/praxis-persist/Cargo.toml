@@ -14,8 +14,8 @@ readme = "README.md"
 
 [dependencies]
 # Praxis crates
-praxis-llm = { path = "../praxis-llm" }
-praxis-types = { path = "../praxis-types" }
+praxis-llm = { version = "0.1.0", path = "../praxis-llm" }
+praxis-types = { version = "0.1.0", path = "../praxis-types" }
 
 # Database
 mongodb = { workspace = true }

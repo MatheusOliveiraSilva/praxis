@@ -13,7 +13,7 @@ categories = ["asynchronous", "development-tools"]
 readme = "README.md"
 
 [dependencies]
-praxis-llm = { path = "../praxis-llm" }
+praxis-llm = { version = "0.1.0", path = "../praxis-llm" }
 serde.workspace = true
 serde_json.workspace = true
 chrono.workspace = true
