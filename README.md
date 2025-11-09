@@ -11,8 +11,9 @@ cd praxis
 
 # 2. Install dependencies (see Installation section)
 
-# 3. Start services
-./scripts/start-all.sh
+# 3. Start the example services
+cd examples/scripts
+./start-all.sh
 
 # 4. Test the API
 curl http://localhost:8000/health
@@ -32,14 +33,19 @@ curl http://localhost:8000/health
 
 ## 🎯 Overview
 
-Praxis is a complete AI agent system featuring:
+Praxis is a **Rust framework for building AI agent backends** with:
 
-- **MCP Integration**: Connect to multiple MCP tool servers
-- **LLM Orchestration**: React agent pattern with tool execution
-- **Persistence Layer**: MongoDB-backed conversation history
-- **Real-time Streaming**: Server-Sent Events for live responses
-- **REST API**: Full CRUD for threads and messages
-- **Web UI**: Basic testing interface (Next.js + TypeScript)
+### Framework Crates (Ready for crates.io)
+- **praxis-types**: Core types and event model
+- **praxis-graph**: React agent orchestration pattern
+- **praxis-llm**: OpenAI/Azure LLM integration
+- **praxis-mcp**: Model Context Protocol client
+- **praxis-persist**: MongoDB persistence layer
+
+### Example Application
+- **praxis-api**: Full REST API with SSE streaming (see `examples/`)
+- **agent_ui**: Web interface for testing (see `examples/`)
+- **scripts**: Start/stop scripts for the full stack (see `examples/`)
 
 ## 🏗️ Architecture
 
@@ -190,7 +196,7 @@ mongosh mongodb://admin:password123@localhost:27017
 #### 2. Start MCP Weather Server
 
 ```bash
-cd mcp_servers/weather
+cd examples/mcp_servers/weather
 PORT=8005 uv run python weather.py
 ```
 
@@ -203,7 +209,7 @@ curl http://localhost:8005/mcp
 #### 3. Start Praxis API
 
 ```bash
-cd crates/praxis-api
+cd examples/praxis-api
 cargo run --release --bin praxis-api
 ```
 
@@ -216,7 +222,7 @@ curl http://localhost:8000/health
 #### 4. Start Web UI (Optional)
 
 ```bash
-cd agent_ui
+cd examples/agent_ui
 npm run dev
 ```
 
@@ -303,56 +309,42 @@ curl -X DELETE http://localhost:8000/threads/<THREAD_ID>?user_id=test_user
 
 ```
 praxis/
-├── crates/                          # Rust workspace
-│   ├── praxis-api/                  # REST API server
+├── crates/                          # 🦀 Framework crates (for crates.io)
+│   ├── praxis-types/                # Core types & event model
+│   ├── praxis-graph/                # React agent orchestrator
+│   ├── praxis-llm/                  # OpenAI/Azure integration
+│   ├── praxis-mcp/                  # MCP client
+│   └── praxis-persist/              # MongoDB persistence
+│
+├── examples/                        # 📦 Example applications
+│   ├── praxis-api/                  # Full REST API example
 │   │   ├── src/
 │   │   │   ├── main.rs             # Entry point
 │   │   │   ├── routes/             # API endpoints
 │   │   │   ├── handlers/           # Request handlers
-│   │   │   └── state.rs            # Shared state
-│   │   └── config/
-│   │       └── default.toml        # Configuration
-│   ├── praxis-graph/                # Agent orchestrator
-│   │   └── src/
-│   │       ├── graph.rs            # Main orchestrator
-│   │       ├── nodes/              # Agent nodes
-│   │       └── router.rs           # Routing logic
-│   ├── praxis-llm/                  # LLM client
-│   │   └── src/
-│   │       ├── openai/             # OpenAI integration
-│   │       └── streaming.rs        # SSE streaming
-│   ├── praxis-mcp/                  # MCP integration
-│   │   └── src/
-│   │       ├── executor.rs         # Tool executor
-│   │       └── client.rs           # MCP client
-│   ├── praxis-persist/              # Persistence layer
-│   │   └── src/
-│   │       ├── client.rs           # Main client
-│   │       ├── repositories/       # Data access
-│   │       └── context/            # Context management
-│   └── praxis-types/                # Shared types
-│       └── src/
-│           ├── config.rs           # Config types
-│           └── events.rs           # Event types
-├── agent_ui/                        # Next.js frontend
-│   ├── app/                         # Next.js App Router
-│   ├── components/                  # React components
-│   ├── hooks/                       # Custom hooks
-│   ├── lib/                         # Business logic
-│   └── types/                       # TypeScript types
-├── mcp_servers/                     # MCP tool servers
-│   └── weather/                     # Weather server
-│       └── weather.py              # FastMCP server
-├── praxis_example/                  # Examples & scripts
-│   └── scripts/
-│       ├── setup-mongo.sh          # MongoDB setup
-│       └── stop-mongo.sh           # MongoDB teardown
-└── docs/                            # Documentation
-    ├── architecture-*.md           # Architecture docs
-    └── *.md                        # Design docs
+│   │   │   └── middleware/         # Middleware
+│   │   └── config/                 # Configuration
+│   ├── agent_ui/                    # Next.js web interface
+│   │   ├── app/                     # App Router
+│   │   ├── components/              # React components
+│   │   └── lib/                     # Business logic
+│   ├── mcp_servers/                 # MCP tool servers
+│   │   └── weather/                 # Weather server example
+│   └── scripts/                     # Start/stop scripts
+│       ├── start-all.sh            # Launch full stack
+│       └── stop-all.sh             # Stop all services
+│
+└── docs/                            # 📚 Documentation
+    ├── architecture.md              # Overall architecture
+    └── architecture-checkpoint-*.md # Checkpoint docs
 ```
 
-## 📚 API Documentation
+**Key Points:**
+- **`crates/`**: Framework library code - this is what gets published to crates.io
+- **`examples/`**: Complete working applications showing how to use the framework
+- **`docs/`**: Architecture decisions, design docs, and learning materials
+
+## API Documentation
 
 ### Base URL
 ```
@@ -382,7 +374,7 @@ POST /threads/:id/messages               # Send message (SSE)
 
 For detailed API documentation, see [docs/api-rest-wrapper-technical-design.md](docs/api-rest-wrapper-technical-design.md)
 
-## 🛠️ Development
+## Development
 
 ### Build & Test
 ```bash
@@ -443,7 +435,7 @@ mongodump --uri="mongodb://admin:password123@localhost:27017" --out=backup/
 mongorestore --uri="mongodb://admin:password123@localhost:27017" backup/
 ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Port Already in Use
 
@@ -525,7 +517,7 @@ curl https://api.openai.com/v1/models \
   -H "Authorization: Bearer $OPENAI_API_KEY"
 ```
 
-## 📊 Performance & Scalability
+## Performance & Scalability
 
 ### Current Capabilities
 - **Concurrent Users**: 100+ (tested)
@@ -543,7 +535,7 @@ workers = 0  # 0 = num_cpus, tune based on load
 pool_size = 10  # Increase for more concurrent DB ops
 ```
 
-## 🤝 Contributing
+## Contributing
 
 See individual crate READMEs for detailed contribution guidelines:
 - [praxis-api/README.md](crates/praxis-api/README.md)
@@ -551,7 +543,7 @@ See individual crate READMEs for detailed contribution guidelines:
 - [agent_ui/README.md](agent_ui/README.md)
 
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **rmcp**: MCP Rust SDK
 - **Axum**: Web framework
@@ -561,13 +553,13 @@ See individual crate READMEs for detailed contribution guidelines:
 
 ---
 
-## 🚀 Next Steps
+## Next Steps
 
-1. ✅ System is running
-2. 🧪 Test basic functionality
-3. 📖 Read [Architecture Documentation](docs/)
-4. 🛠️ Customize for your use case
-5. 🚢 Deploy to production (see deployment docs)
+1. System is running
+2. Test basic functionality
+3. Read [Architecture Documentation](docs/)
+4. Customize for your use case
+5. Deploy to production (see deployment docs)
 
 For questions or issues, check the [Troubleshooting](#troubleshooting) section or open an issue.
 

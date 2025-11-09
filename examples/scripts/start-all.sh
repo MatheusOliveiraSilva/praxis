@@ -14,7 +14,8 @@ NC='\033[0m' # No Color
 
 # Project root
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
+EXAMPLES_DIR="$( cd "$SCRIPT_DIR/.." && pwd )"
+PROJECT_ROOT="$( cd "$EXAMPLES_DIR/.." && pwd )"
 
 echo -e "${BLUE}╔════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║           Praxis AI Agent - Startup Script                ║${NC}"
@@ -35,7 +36,7 @@ check_port() {
 wait_for_service() {
     local name=$1
     local url=$2
-    local max_attempts=30
+    local max_attempts=${3:-60}  # Default 60s (increased for safety)
     local attempt=1
     
     echo -e "${YELLOW}⏳ Waiting for $name to be ready...${NC}"
@@ -70,9 +71,17 @@ echo -e "${BLUE}[2/5] Starting MongoDB...${NC}"
 if check_port 27017; then
     echo -e "${YELLOW}⚠ MongoDB already running on port 27017${NC}"
 else
-    cd "$PROJECT_ROOT/praxis_example"
-    ./scripts/setup-mongo.sh
-    wait_for_service "MongoDB" "mongodb://admin:password123@localhost:27017" || exit 1
+    # MongoDB should be managed separately (docker-compose or script in project root)
+    echo -e "${YELLOW}Starting MongoDB with Docker...${NC}"
+    docker run -d \
+        --name praxis-mongo \
+        -p 27017:27017 \
+        -e MONGO_INITDB_ROOT_USERNAME=admin \
+        -e MONGO_INITDB_ROOT_PASSWORD=password123 \
+        mongo:7.0 > /dev/null 2>&1 || echo -e "${YELLOW}⚠ MongoDB container may already exist${NC}"
+    docker start praxis-mongo 2>/dev/null || true
+    sleep 5
+    echo -e "${GREEN}✓ MongoDB started${NC}"
 fi
 echo ""
 
@@ -82,11 +91,11 @@ echo -e "${BLUE}[3/5] Starting MCP Weather Server...${NC}"
 if check_port 8005; then
     echo -e "${YELLOW}⚠ MCP Server already running on port 8005${NC}"
 else
-    cd "$PROJECT_ROOT/mcp_servers/weather"
+    cd "$EXAMPLES_DIR/mcp_servers/weather"
     PORT=8005 uv run python weather.py > /tmp/praxis-mcp.log 2>&1 &
     MCP_PID=$!
     echo $MCP_PID > /tmp/praxis-mcp.pid
-    wait_for_service "MCP Server" "http://localhost:8005/mcp" || exit 1
+    wait_for_service "MCP Server" "http://localhost:8005/mcp" 90 || exit 1
     echo -e "${GREEN}✓ MCP Server started (PID: $MCP_PID)${NC}"
 fi
 echo ""
@@ -95,8 +104,8 @@ echo ""
 echo -e "${BLUE}[4/5] Starting Praxis API...${NC}"
 
 # Check for .env file
-if [ ! -f "$PROJECT_ROOT/crates/praxis-api/.env" ]; then
-    echo -e "${RED}✗ Missing .env file in crates/praxis-api/${NC}"
+if [ ! -f "$EXAMPLES_DIR/praxis-api/.env" ]; then
+    echo -e "${RED}✗ Missing .env file in examples/praxis-api/${NC}"
     echo -e "${YELLOW}Please create it with:${NC}"
     echo -e "  OPENAI_API_KEY=your-key-here"
     echo -e "  MONGODB_URI=mongodb://admin:password123@localhost:27017"
@@ -107,11 +116,12 @@ fi
 if check_port 8000; then
     echo -e "${YELLOW}⚠ Praxis API already running on port 8000${NC}"
 else
-    cd "$PROJECT_ROOT/crates/praxis-api"
+    cd "$EXAMPLES_DIR/praxis-api"
+    echo -e "${YELLOW}Building Praxis API (this may take a minute on first run)...${NC}"
     cargo run --release --bin praxis-api > /tmp/praxis-api.log 2>&1 &
     API_PID=$!
     echo $API_PID > /tmp/praxis-api.pid
-    wait_for_service "Praxis API" "http://localhost:8000/health" || exit 1
+    wait_for_service "Praxis API" "http://localhost:8000/health" 120 || exit 1
     echo -e "${GREEN}✓ Praxis API started (PID: $API_PID)${NC}"
 fi
 echo ""
@@ -122,7 +132,7 @@ echo -e "${BLUE}[5/5] Starting Web UI...${NC}"
 if check_port 3000; then
     echo -e "${YELLOW}⚠ Web UI already running on port 3000${NC}"
 else
-    cd "$PROJECT_ROOT/agent_ui"
+    cd "$EXAMPLES_DIR/agent_ui"
     
     # Check if node_modules exists
     if [ ! -d "node_modules" ]; then
@@ -155,7 +165,7 @@ echo -e "  • Praxis API:      tail -f /tmp/praxis-api.log"
 echo -e "  • Web UI:          tail -f /tmp/praxis-ui.log"
 echo ""
 echo -e "${BLUE}Stop all services:${NC}"
-echo -e "  ./scripts/stop-all.sh"
+echo -e "  cd examples/scripts && ./stop-all.sh"
 echo ""
 echo -e "${YELLOW}Test the API:${NC}"
 echo -e "  curl http://localhost:8000/health"

@@ -1,10 +1,9 @@
 [package]
 name = "praxis-api"
-version.workspace = true
-edition.workspace = true
-authors.workspace = true
-license.workspace = true
-repository.workspace = true
+version = "0.1.0"
+edition = "2021"
+authors = ["Praxis Team"]
+license = "MIT"
 
 [[bin]]
 name = "praxis-api"
@@ -12,11 +11,11 @@ path = "src/main.rs"
 
 [dependencies]
 # Praxis crates
-praxis-graph = { path = "../praxis-graph" }
-praxis-persist = { path = "../praxis-persist" }
-praxis-llm = { path = "../praxis-llm" }
-praxis-mcp = { path = "../praxis-mcp" }
-praxis-types = { path = "../praxis-types" }
+praxis-graph = { path = "../../crates/praxis-graph" }
+praxis-persist = { path = "../../crates/praxis-persist" }
+praxis-llm = { path = "../../crates/praxis-llm" }
+praxis-mcp = { path = "../../crates/praxis-mcp" }
+praxis-types = { path = "../../crates/praxis-types" }
 
 # Axum & HTTP
 axum = "0.7"
@@ -27,21 +26,21 @@ tower-http = { version = "0.5", features = ["trace", "cors", "compression-gzip",
 axum-streams = "0.11"
 
 # Async
-tokio = { workspace = true }
+tokio = { version = "1", features = ["full"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
-futures = { workspace = true }
-async-stream = { workspace = true }
+futures = "0.3"
+async-stream = "0.3"
 
 # Serialization
-serde = { workspace = true }
-serde_json = { workspace = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 
 # Config
 config = "0.14"
 toml = "0.8"
 
 # Error handling
-anyhow = { workspace = true }
+anyhow = "1"
 thiserror = "2.0"
 
 # Logging
@@ -49,14 +48,14 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 
 # MongoDB
-mongodb = { workspace = true }
-bson = { workspace = true }
+mongodb = "3.1"
+bson = "2.13"
 
 # Date/time
-chrono = { workspace = true }
+chrono = { version = "0.4", features = ["serde"] }
 
 # UUID
-uuid = { workspace = true }
+uuid = { version = "1", features = ["v4", "serde"] }
 
 # OpenAPI
 utoipa = { version = "4", features = ["axum_extras", "chrono", "uuid"] }

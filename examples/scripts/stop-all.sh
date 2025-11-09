@@ -58,12 +58,12 @@ fi
 
 # Stop MongoDB
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
+EXAMPLES_DIR="$( cd "$SCRIPT_DIR/.." && pwd )"
+PROJECT_ROOT="$( cd "$EXAMPLES_DIR/.." && pwd )"
 
 if docker ps | grep -q praxis-mongo; then
     echo -e "${YELLOW}Stopping MongoDB...${NC}"
-    cd "$PROJECT_ROOT/praxis_example"
-    ./scripts/stop-mongo.sh
+    docker stop praxis-mongo > /dev/null 2>&1
     echo -e "${GREEN}✓ MongoDB stopped${NC}"
 else
     echo -e "${YELLOW}⚠ MongoDB not running${NC}"
