@@ -1,5 +1,5 @@
 #[cfg(feature = "mongodb")]
-use mongodb::{Client, Collection, bson::doc, bson::oid::ObjectId};
+use mongodb::{Client, Collection, bson, bson::doc, bson::oid::ObjectId};
 #[cfg(feature = "mongodb")]
 use futures::TryStreamExt;
 
@@ -30,6 +30,25 @@ impl MongoMessageRepository {
     /// Get all messages for a thread
     pub async fn get_messages(&self, thread_id: ObjectId) -> Result<Vec<MongoMessage>> {
         let filter = doc! { "thread_id": thread_id };
+        let messages = self.collection
+            .find(filter)
+            .sort(doc! { "created_at": 1 })
+            .await?
+            .try_collect()
+            .await?;
+        Ok(messages)
+    }
+    
+    /// Get messages after a certain timestamp
+    pub async fn get_messages_after(
+        &self,
+        thread_id: ObjectId,
+        after: chrono::DateTime<chrono::Utc>,
+    ) -> Result<Vec<MongoMessage>> {
+        let filter = doc! {
+            "thread_id": thread_id,
+            "created_at": { "$gt": bson::DateTime::from_millis(after.timestamp_millis()) }
+        };
         let messages = self.collection
             .find(filter)
             .sort(doc! { "created_at": 1 })

@@ -58,6 +58,19 @@ impl PersistenceClient for MongoPersistenceClient {
         Ok(db_messages)
     }
     
+    async fn get_messages_after(
+        &self,
+        thread_id: &str,
+        after: chrono::DateTime<chrono::Utc>,
+    ) -> Result<Vec<DBMessage>> {
+        let object_id = ObjectId::parse_str(thread_id)
+            .map_err(|e| PersistError::InvalidObjectId(e.to_string()))?;
+        
+        let mongo_messages = self.message_repo.get_messages_after(object_id, after).await?;
+        let db_messages = mongo_messages.into_iter().map(|m| m.into()).collect();
+        Ok(db_messages)
+    }
+    
     async fn create_thread(&self, user_id: &str, metadata: ThreadMetadata) -> Result<Thread> {
         let mongo_thread = self.thread_repo.create_thread(user_id.to_string(), metadata).await?;
         Ok(mongo_thread.into())

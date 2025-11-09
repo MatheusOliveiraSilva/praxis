@@ -9,3 +9,6 @@ Task: Generate a brief summary (max 500 words) of the conversation below, captur
 - User preferences or context
 
 Keep the summary factual and relevant. If there is a previous summary, incorporate its key information into the new summary.
+
+Conversation:
+<conversation>

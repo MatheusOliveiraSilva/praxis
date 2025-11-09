@@ -14,6 +14,13 @@ pub trait PersistenceClient: Send + Sync {
     /// Get all messages for a thread
     async fn get_messages(&self, thread_id: &str) -> Result<Vec<DBMessage>>;
     
+    /// Get messages after a certain timestamp (for context window after summary)
+    async fn get_messages_after(
+        &self,
+        thread_id: &str,
+        after: chrono::DateTime<chrono::Utc>,
+    ) -> Result<Vec<DBMessage>>;
+    
     /// Create a new thread
     async fn create_thread(&self, user_id: &str, metadata: ThreadMetadata) -> Result<Thread>;
     

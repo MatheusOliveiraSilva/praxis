@@ -14,4 +14,3 @@ tokio = { workspace = true }
 serde = { workspace = true }
 tiktoken-rs = "0.6"
 chrono = { workspace = true }
-futures = { workspace = true }
