@@ -1,8 +1,9 @@
-use anyhow::Result;
-use futures::{Stream, StreamExt};
-use reqwest::Response;
-use serde::{Deserialize, Serialize};
 use std::pin::Pin;
+use anyhow::Result;
+use reqwest::Response;
+use std::collections::VecDeque;
+use futures::{Stream, StreamExt};
+use serde::{Deserialize, Serialize};
 
 use crate::openai::ResponseStreamChunk;
 
@@ -126,17 +127,18 @@ pub fn parse_chat_sse_stream(
     
     Box::pin(async_stream::stream! {
         let mut byte_chunks = Box::pin(stream);
-        let mut buffer = String::new();
+        let mut buffer = VecDeque::with_capacity(8192);
         
         while let Some(chunk_result) = byte_chunks.next().await {
             match chunk_result {
                 Ok(bytes) => {
-                    if let Ok(text) = std::str::from_utf8(&bytes) {
-                        buffer.push_str(text);
+                    buffer.extend(bytes);
+                    
+                    while let Some(newline_pos) = buffer.iter().position(|&b| b == b'\n') {
+                        let line_bytes: Vec<u8> = buffer.drain(..=newline_pos).collect();
                         
-                        while let Some(newline_pos) = buffer.find('\n') {
-                            let line = buffer[..newline_pos].trim().to_string();
-                            buffer = buffer[newline_pos + 1..].to_string();
+                        if let Ok(line_str) = std::str::from_utf8(&line_bytes) {
+                            let line = line_str.trim();
                             
                             if line.is_empty() {
                                 continue;
@@ -173,17 +175,18 @@ pub fn parse_response_sse_stream(
     
     Box::pin(async_stream::stream! {
         let mut byte_chunks = Box::pin(stream);
-        let mut buffer = String::new();
+        let mut buffer = VecDeque::with_capacity(8192);
         
         while let Some(chunk_result) = byte_chunks.next().await {
             match chunk_result {
                 Ok(bytes) => {
-                    if let Ok(text) = std::str::from_utf8(&bytes) {
-                        buffer.push_str(text);
+                    buffer.extend(bytes);
+                    
+                    while let Some(newline_pos) = buffer.iter().position(|&b| b == b'\n') {
+                        let line_bytes: Vec<u8> = buffer.drain(..=newline_pos).collect();
                         
-                        while let Some(newline_pos) = buffer.find('\n') {
-                            let line = buffer[..newline_pos].trim().to_string();
-                            buffer = buffer[newline_pos + 1..].to_string();
+                        if let Ok(line_str) = std::str::from_utf8(&line_bytes) {
+                            let line = line_str.trim();
                             
                             if line.is_empty() {
                                 continue;
