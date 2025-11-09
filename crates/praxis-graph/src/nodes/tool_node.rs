@@ -2,7 +2,7 @@ use crate::node::{EventSender, Node, NodeType};
 use anyhow::Result;
 use async_trait::async_trait;
 use praxis_mcp::{MCPToolExecutor, ToolResponse};
-use praxis_types::{GraphState, StreamEvent};
+use crate::types::{GraphState, StreamEvent};
 use std::sync::Arc;
 use std::time::Instant;
 

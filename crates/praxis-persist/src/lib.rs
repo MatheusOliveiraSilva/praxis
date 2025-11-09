@@ -9,7 +9,7 @@ mod dbs;
 
 // Public exports
 pub use trait_client::PersistenceClient;
-pub use accumulator::EventAccumulator;
+pub use accumulator::{EventAccumulator, StreamEventExtractor};
 pub use models::{DBMessage, MessageRole, MessageType, Thread, ThreadMetadata, ThreadSummary};
 pub use error::{PersistError, Result};
 

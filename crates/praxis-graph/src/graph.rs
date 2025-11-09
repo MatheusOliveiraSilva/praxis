@@ -5,7 +5,7 @@ use crate::builder::PersistenceConfig;
 use anyhow::Result;
 use praxis_llm::LLMClient;
 use praxis_mcp::MCPToolExecutor;
-use praxis_types::{GraphConfig, GraphInput, GraphState, StreamEvent};
+use crate::types::{GraphConfig, GraphInput, GraphState, StreamEvent};
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::mpsc;
@@ -107,7 +107,7 @@ impl Graph {
         let mut state = GraphState::from_input(input);
 
         // Create Observer if persistence enabled
-        let mut accumulator = match (&persistence, &ctx) {
+        let mut accumulator: Option<praxis_persist::EventAccumulator<StreamEvent>> = match (&persistence, &ctx) {
             (Some(_), Some(c)) => Some(praxis_persist::EventAccumulator::new(
                 c.thread_id.clone(),
                 c.user_id.clone(),
@@ -174,7 +174,7 @@ impl Graph {
         
         // Observer pattern: check for final transition
         if let Some(ref mut acc) = accumulator {
-            if let Some(completed_msg) = acc.push_and_check_transition(end_event) {
+            if let Some(completed_msg) = acc.push_and_check_transition(&end_event) {
                 if let Some(ref p) = persistence {
                     p.client.save_message(completed_msg).await?;
                 }

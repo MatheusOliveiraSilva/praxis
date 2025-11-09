@@ -3,7 +3,7 @@ use anyhow::{Result, anyhow};
 
 use praxis_llm::LLMClient;
 use praxis_mcp::MCPToolExecutor;
-use praxis_types::GraphConfig;
+use crate::types::GraphConfig;
 
 use crate::graph::Graph;
 

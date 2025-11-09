@@ -19,7 +19,6 @@ mongodb = ["dep:mongodb", "dep:bson"]
 [dependencies]
 # Praxis crates
 praxis-llm = { version = "0.1.0", path = "../praxis-llm" }
-praxis-types = { version = "0.1.0", path = "../praxis-types" }
 
 # Database (optional)
 mongodb = { workspace = true, optional = true }

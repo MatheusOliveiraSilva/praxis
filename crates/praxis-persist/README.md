@@ -107,7 +107,7 @@ Convert streaming events into persisted messages:
 
 ```rust
 use praxis_persist::MessageAccumulator;
-use praxis_types::StreamEvent;
+use praxis_graph::StreamEvent;
 
 let mut accumulator = MessageAccumulator::new();
 

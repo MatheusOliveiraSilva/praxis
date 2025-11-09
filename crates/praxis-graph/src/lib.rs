@@ -1,3 +1,4 @@
+pub mod types;
 pub mod node;
 pub mod router;
 pub mod nodes;
@@ -9,8 +10,7 @@ pub use router::{Router, NextNode, SimpleRouter};
 pub use graph::{Graph, PersistenceContext};
 pub use builder::{GraphBuilder, PersistenceConfig};
 
-// Re-export key types from praxis-types
-pub use praxis_types::{
+pub use types::{
     GraphState, GraphInput, GraphConfig, LLMConfig, ContextPolicy, StreamEvent,
 };
 

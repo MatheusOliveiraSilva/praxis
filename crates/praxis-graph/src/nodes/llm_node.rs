@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use futures::StreamExt;
 use praxis_llm::{ChatClient, ChatOptions, ChatRequest, Message, ToolChoice};
 use praxis_mcp::MCPToolExecutor;
-use praxis_types::GraphState;
+use crate::types::GraphState;
 use std::sync::Arc;
 
 pub struct LLMNode {
@@ -20,30 +20,10 @@ impl LLMNode {
         }
     }
 
-    /// Convert praxis_llm::StreamEvent to praxis_types::StreamEvent
-    fn convert_event(event: praxis_llm::StreamEvent) -> praxis_types::StreamEvent {
-        match event {
-            praxis_llm::StreamEvent::Reasoning { content } => {
-                praxis_types::StreamEvent::Reasoning { content }
-            }
-            praxis_llm::StreamEvent::Message { content } => {
-                praxis_types::StreamEvent::Message { content }
-            }
-            praxis_llm::StreamEvent::ToolCall {
-                index,
-                id,
-                name,
-                arguments,
-            } => praxis_types::StreamEvent::ToolCall {
-                index,
-                id,
-                name,
-                arguments,
-            },
-            praxis_llm::StreamEvent::Done { finish_reason } => {
-                praxis_types::StreamEvent::Done { finish_reason }
-            }
-        }
+    /// Convert praxis_llm::StreamEvent to Graph StreamEvent
+    /// Uses automatic From trait conversion
+    fn convert_event(event: praxis_llm::StreamEvent) -> crate::types::StreamEvent {
+        event.into()
     }
 }
 

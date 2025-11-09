@@ -1,8 +1,20 @@
-use praxis_types::StreamEvent;
 use std::collections::HashMap;
 use std::time::Instant;
+use std::marker::PhantomData;
 
 use crate::{DBMessage, MessageRole, MessageType};
+
+/// Trait for extracting information from stream events
+/// This allows EventAccumulator to work with any event type
+pub trait StreamEventExtractor {
+    fn is_reasoning(&self) -> bool;
+    fn is_message(&self) -> bool;
+    fn is_tool_call(&self) -> bool;
+    
+    fn reasoning_content(&self) -> Option<&str>;
+    fn message_content(&self) -> Option<&str>;
+    fn tool_call_info(&self) -> Option<(u32, Option<&str>, Option<&str>, Option<&str>)>;
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum EventType {
@@ -12,12 +24,15 @@ enum EventType {
 }
 
 impl EventType {
-    fn from_event(event: &StreamEvent) -> Option<Self> {
-        match event {
-            StreamEvent::Reasoning { .. } => Some(EventType::Reasoning),
-            StreamEvent::Message { .. } => Some(EventType::Message),
-            StreamEvent::ToolCall { .. } => Some(EventType::ToolCall),
-            _ => None,
+    fn from_event<E: StreamEventExtractor>(event: &E) -> Option<Self> {
+        if event.is_reasoning() {
+            Some(EventType::Reasoning)
+        } else if event.is_message() {
+            Some(EventType::Message)
+        } else if event.is_tool_call() {
+            Some(EventType::ToolCall)
+        } else {
+            None
         }
     }
 }
@@ -33,7 +48,9 @@ struct ToolCallBuffer {
 /// 
 /// When event type changes (Reasoning → Message → ToolCall), 
 /// the previous buffer is finalized and ready to be persisted
-pub struct EventAccumulator {
+/// 
+/// Generic over event type to avoid circular dependencies
+pub struct EventAccumulator<E> {
     thread_id: String,
     user_id: String,
     current_type: Option<EventType>,
@@ -45,9 +62,12 @@ pub struct EventAccumulator {
     
     // Timing tracking
     current_start: Option<Instant>,
+    
+    // Phantom data to track event type
+    _phantom: PhantomData<E>,
 }
 
-impl EventAccumulator {
+impl<E: StreamEventExtractor> EventAccumulator<E> {
     pub fn new(thread_id: String, user_id: String) -> Self {
         Self {
             thread_id,
@@ -57,14 +77,15 @@ impl EventAccumulator {
             message_buffer: String::new(),
             tool_calls: HashMap::new(),
             current_start: None,
+            _phantom: PhantomData,
         }
     }
     
     /// Push event and check for type transition (Observer Pattern)
     /// 
     /// Returns Some(DBMessage) when type changes, indicating the previous buffer is complete
-    pub fn push_and_check_transition(&mut self, event: StreamEvent) -> Option<DBMessage> {
-        let new_type = EventType::from_event(&event)?;
+    pub fn push_and_check_transition(&mut self, event: &E) -> Option<DBMessage> {
+        let new_type = EventType::from_event(event)?;
         
         // Detect transition
         let transitioned = self.current_type.map_or(false, |prev| prev != new_type);
@@ -139,33 +160,33 @@ impl EventAccumulator {
         message
     }
     
-    fn accumulate_event(&mut self, event: StreamEvent) {
-        match event {
-            StreamEvent::Reasoning { content, .. } => {
-                self.reasoning_buffer.push_str(&content);
-            },
-            StreamEvent::Message { content, .. } => {
-                self.message_buffer.push_str(&content);
-            },
-            StreamEvent::ToolCall { index, id, name, arguments, .. } => {
-                let tool_call_id = id.unwrap_or_else(|| format!("call_{}", index));
-                
-                let entry = self.tool_calls.entry(tool_call_id.clone())
-                    .or_insert_with(|| ToolCallBuffer {
-                        tool_call_id: tool_call_id.clone(),
-                        tool_name: String::new(),
-                        arguments: String::new(),
-                        started_at: Instant::now(),
-                    });
-                
-                if let Some(name) = name {
-                    entry.tool_name = name;
-                }
-                if let Some(args) = arguments {
-                    entry.arguments.push_str(&args);
-                }
-            },
-            _ => {},
+    fn accumulate_event(&mut self, event: &E) {
+        if let Some(content) = event.reasoning_content() {
+            self.reasoning_buffer.push_str(content);
+        }
+        
+        if let Some(content) = event.message_content() {
+            self.message_buffer.push_str(content);
+        }
+        
+        if let Some((index, id, name, arguments)) = event.tool_call_info() {
+            let tool_call_id = id.map(String::from)
+                .unwrap_or_else(|| format!("call_{}", index));
+            
+            let entry = self.tool_calls.entry(tool_call_id.clone())
+                .or_insert_with(|| ToolCallBuffer {
+                    tool_call_id: tool_call_id.clone(),
+                    tool_name: String::new(),
+                    arguments: String::new(),
+                    started_at: Instant::now(),
+                });
+            
+            if let Some(name) = name {
+                entry.tool_name = name.to_string();
+            }
+            if let Some(args) = arguments {
+                entry.arguments.push_str(args);
+            }
         }
     }
     
@@ -201,4 +222,3 @@ impl EventAccumulator {
         self.finalize_current_buffer()
     }
 }
-
