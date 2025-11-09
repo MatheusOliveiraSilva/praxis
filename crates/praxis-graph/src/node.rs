@@ -1,6 +1,6 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use praxis_types::{GraphState, StreamEvent};
+use crate::types::{GraphState, StreamEvent};
 use tokio::sync::mpsc;
 
 pub type EventSender = mpsc::Sender<StreamEvent>;

@@ -1,5 +1,5 @@
 use crate::node::NodeType;
-use praxis_types::GraphState;
+use crate::types::GraphState;
 
 /// Decides which node to execute next based on current state
 pub trait Router: Send + Sync {

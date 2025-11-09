@@ -1,29 +1,29 @@
 [package]
 name = "praxis-graph"
-version.workspace = true
-edition.workspace = true
-authors.workspace = true
-license.workspace = true
-repository.workspace = true
-homepage.workspace = true
-documentation.workspace = true
+version = "0.1.1"
+edition = "2021"
+authors = ["Praxis Team"]
+license = "MIT"
+repository = "https://github.com/matheussilva/praxis"
+homepage = "https://github.com/matheussilva/praxis"
+documentation = "https://docs.rs/praxis-graph"
 description = "React agent orchestrator for building AI agent workflows with LLM and tool execution"
 keywords = ["ai", "agent", "workflow", "orchestrator", "react"]
 categories = ["asynchronous", "development-tools"]
 readme = "README.md"
 
 [dependencies]
-praxis-types = { version = "0.1.0", path = "../praxis-types" }
-praxis-llm = { version = "0.1.0", path = "../praxis-llm" }
+praxis-llm = { version = "0.1.1", path = "../praxis-llm" }
 praxis-mcp = { version = "0.1.0", path = "../praxis-mcp" }
-tokio.workspace = true
-anyhow.workspace = true
-async-trait.workspace = true
-futures.workspace = true
-serde.workspace = true
-serde_json.workspace = true
-chrono.workspace = true
-uuid.workspace = true
+praxis-persist = { version = "0.1.1", path = "../praxis-persist" }
+tokio = { version = "1", features = ["full"] }
+anyhow = "1"
+async-trait = "0.1"
+futures = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.0", features = ["v4", "serde"] }
 
 [[example]]
 name = "react_loop"

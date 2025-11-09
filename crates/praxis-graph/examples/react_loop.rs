@@ -32,7 +32,7 @@ async fn main() -> Result<()> {
 
     // Parse MCP servers from environment
     let mcp_servers = std::env::var("MCP_SERVERS")
-        .unwrap_or_else(|_| "http://localhost:8000/mcp".to_string());
+        .unwrap_or_else(|_| "http://localhost:8005/mcp".to_string());
 
     // Create MCP tool executor (aggregates multiple servers)
     let mcp_executor = Arc::new(MCPToolExecutor::new());
@@ -73,6 +73,7 @@ async fn main() -> Result<()> {
 
     // Conversation loop
     let conversation_id = uuid::Uuid::new_v4().to_string();
+    let mut conversation_history: Vec<Message> = Vec::new();
     
     loop {
         // Get user input
@@ -92,21 +93,28 @@ async fn main() -> Result<()> {
             break;
         }
 
-        // Create message
+        // Create user message
         let user_message = Message::Human {
             content: Content::text(input),
             name: None,
         };
+        
+        // Add to conversation history
+        conversation_history.push(user_message);
 
-        // Create graph input
+        // Create graph input with full conversation history
         let llm_config = LLMConfig::new("gpt-4")
             .with_temperature(0.7)
             .with_max_tokens(4096);
 
-        let graph_input = GraphInput::new(conversation_id.clone(), user_message, llm_config);
+        let graph_input = GraphInput::new(
+            conversation_id.clone(),
+            conversation_history.clone(),
+            llm_config
+        );
 
-        // Spawn execution
-        let mut event_rx = graph.spawn_run(graph_input);
+        // Spawn execution (no persistence for this example)
+        let mut event_rx = graph.spawn_run(graph_input, None);
 
         // Print assistant label
         print!("\n\x1b[1;32mAssistant:\x1b[0m ");
@@ -114,6 +122,7 @@ async fn main() -> Result<()> {
 
         let mut in_reasoning = false;
         let mut in_message = false;
+        let mut assistant_response = String::new();
 
         // Process events
         while let Some(event) = event_rx.recv().await {
@@ -142,6 +151,7 @@ async fn main() -> Result<()> {
                         in_reasoning = false;
                     }
                     print!("{}", content);
+                    assistant_response.push_str(&content);
                     io::stdout().flush()?;
                 }
 
@@ -213,6 +223,15 @@ async fn main() -> Result<()> {
                     break;
                 }
             }
+        }
+        
+        // Add assistant response to conversation history
+        if !assistant_response.is_empty() {
+            conversation_history.push(Message::AI {
+                content: Some(Content::text(assistant_response)),
+                tool_calls: None,
+                name: None,
+            });
         }
 
         println!(); // Final newline

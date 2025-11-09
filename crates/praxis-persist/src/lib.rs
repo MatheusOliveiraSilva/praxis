@@ -1,16 +1,17 @@
-pub mod models;
-pub mod repositories;
-pub mod context;
-pub mod client;
-pub mod error;
-pub mod builder;
-pub mod templates;
+// Core modules
+mod models;
+mod error;
+mod trait_client;
+mod accumulator;
 
-pub use models::{Thread, ThreadMetadata, ThreadSummary, Message, MessageRole, MessageType};
-pub use repositories::{ThreadRepository, MessageRepository};
-pub use context::ContextManager;
-pub use client::PersistClient;
-pub use error::PersistError;
-pub use builder::PersistClientBuilder;
-pub use templates::{DEFAULT_SYSTEM_PROMPT_TEMPLATE, DEFAULT_SUMMARIZATION_PROMPT};
+#[cfg(feature = "mongodb")]
+mod dbs;
 
+// Public exports
+pub use trait_client::PersistenceClient;
+pub use accumulator::{EventAccumulator, StreamEventExtractor};
+pub use models::{DBMessage, MessageRole, MessageType, Thread, ThreadMetadata, ThreadSummary};
+pub use error::{PersistError, Result};
+
+#[cfg(feature = "mongodb")]
+pub use dbs::mongo::MongoPersistenceClient;

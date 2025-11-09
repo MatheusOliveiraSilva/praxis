@@ -1,5 +1,5 @@
 use anyhow::Result;
-use praxis_llm::{LLMClient, OpenAIClient, ChatRequest, Message, StreamEvent};
+use praxis_llm::{ChatClient, OpenAIClient, ChatRequest, Message, StreamEvent};
 use futures::StreamExt;
 
 #[tokio::main]
@@ -8,13 +8,13 @@ async fn main() -> Result<()> {
     let client = OpenAIClient::new(api_key)?;
 
     let request = ChatRequest::new(
-        "gpt-5",
+        "gpt-4o",
         vec![Message::human("Write a short poem about coding.")]
     );
 
     println!("Streaming response:");
     
-    let mut stream = client.chat_completion_stream(request).await?;
+    let mut stream = client.chat_stream(request).await?;
 
     while let Some(event) = stream.next().await {
         match event? {

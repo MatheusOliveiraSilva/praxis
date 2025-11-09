@@ -1,0 +1,25 @@
+[package]
+name = "praxis-context"
+version = "0.1.0"
+edition = "2021"
+authors = ["Praxis Team"]
+license = "MIT"
+repository = "https://github.com/matheussilva/praxis"
+homepage = "https://github.com/matheussilva/praxis"
+documentation = "https://docs.rs/praxis-context"
+description = "Context management and summarization for AI agent conversations"
+keywords = ["ai", "context", "summarization", "tokens", "async"]
+categories = ["asynchronous", "development-tools"]
+readme = "README.md"
+
+[dependencies]
+praxis-llm = { version = "0.1.1", path = "../praxis-llm" }
+praxis-persist = { version = "0.1.1", path = "../praxis-persist" }
+
+async-trait = "0.1"
+anyhow = "1"
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+tiktoken-rs = "0.6"
+chrono = { version = "0.4", features = ["serde"] }
+futures = "0.3"

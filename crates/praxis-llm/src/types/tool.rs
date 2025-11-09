@@ -2,14 +2,14 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 /// Tool/Function definition (sent to OpenAI)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Tool {
     #[serde(rename = "type")]
     pub tool_type: String, // Always "function" for now
     pub function: FunctionDefinition,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FunctionDefinition {
     pub name: String,
     
@@ -43,7 +43,7 @@ pub struct ToolCall {
     pub id: String,
     
     #[serde(rename = "type")]
-    pub tool_type: String, // "function"
+    pub tool_type: String,
     
     pub function: FunctionCall,
 }
@@ -51,7 +51,7 @@ pub struct ToolCall {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FunctionCall {
     pub name: String,
-    pub arguments: String, // JSON string
+    pub arguments: String,
 }
 
 impl ToolCall {
@@ -67,7 +67,7 @@ impl ToolCall {
 }
 
 /// Tool choice parameter (how aggressive to use tools)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum ToolChoice {
     /// "auto" - let model decide
@@ -87,7 +87,7 @@ pub enum ToolChoice {
     },
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ToolChoiceFunction {
     pub name: String,
 }

@@ -1,7 +1,8 @@
 use std::sync::Arc;
 use praxis_llm::LLMClient;
 use praxis_mcp::MCPToolExecutor;
-use praxis_persist::PersistClient;
+use praxis_persist::PersistenceClient;
+use praxis_context::ContextStrategy;
 use praxis_graph::Graph;
 use crate::config::Config;
 
@@ -12,7 +13,8 @@ use crate::config::Config;
 #[derive(Clone)]
 pub struct AppState {
     pub config: Arc<Config>,
-    pub persist: Arc<PersistClient>,
+    pub persist: Arc<dyn PersistenceClient>,
+    pub context_strategy: Arc<dyn ContextStrategy>,
     pub llm_client: Arc<dyn LLMClient>,
     pub mcp_executor: Arc<MCPToolExecutor>,
     pub graph: Arc<Graph>,
@@ -21,14 +23,16 @@ pub struct AppState {
 impl AppState {
     pub fn new(
         config: Config,
-        persist: PersistClient,
+        persist: Arc<dyn PersistenceClient>,
+        context_strategy: Arc<dyn ContextStrategy>,
         llm_client: Arc<dyn LLMClient>,
         mcp_executor: Arc<MCPToolExecutor>,
         graph: Graph,
     ) -> Self {
         Self {
             config: Arc::new(config),
-            persist: Arc::new(persist),
+            persist,
+            context_strategy,
             llm_client,
             mcp_executor,
             graph: Arc::new(graph),

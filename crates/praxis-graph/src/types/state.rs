@@ -1,4 +1,4 @@
-use crate::config::{LLMConfig, ContextPolicy};
+use crate::types::config::{LLMConfig, ContextPolicy};
 use praxis_llm::{Message, ToolCall};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -29,16 +29,10 @@ impl GraphState {
     }
 
     pub fn from_input(input: GraphInput) -> Self {
-        let mut messages = Vec::new();
-        
-        // TODO: In a real implementation, we'd fetch history from DB here
-        // For now, just use the last message
-        messages.push(input.last_message);
-
         Self {
             conversation_id: input.conversation_id,
             run_id: uuid::Uuid::new_v4().to_string(),
-            messages,
+            messages: input.messages,
             llm_config: input.llm_config,
             variables: HashMap::new(),
         }
@@ -85,7 +79,7 @@ impl GraphState {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GraphInput {
     pub conversation_id: String,
-    pub last_message: Message,
+    pub messages: Vec<Message>,
     pub llm_config: LLMConfig,
     pub context_policy: ContextPolicy,
 }
@@ -93,12 +87,12 @@ pub struct GraphInput {
 impl GraphInput {
     pub fn new(
         conversation_id: impl Into<String>,
-        last_message: Message,
+        messages: Vec<Message>,
         llm_config: LLMConfig,
     ) -> Self {
         Self {
             conversation_id: conversation_id.into(),
-            last_message,
+            messages,
             llm_config,
             context_policy: ContextPolicy::default(),
         }

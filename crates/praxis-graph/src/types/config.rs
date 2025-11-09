@@ -69,7 +69,7 @@ impl LLMConfig {
 impl Default for LLMConfig {
     fn default() -> Self {
         Self {
-            model: "gpt-5".to_string(),
+            model: "gpt-4o".to_string(),
             temperature: Some(1.0),
             max_tokens: Some(4096),
         }

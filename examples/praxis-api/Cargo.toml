@@ -10,11 +10,11 @@ name = "praxis-api"
 path = "src/main.rs"
 
 [dependencies]
-praxis-graph = "0.1.0"
-praxis-persist = "0.1.0"
-praxis-llm = "0.1.0"
-praxis-mcp = "0.1.0"
-praxis-types = "0.1.0"
+praxis-graph = { path = "../../crates/praxis-graph" }
+praxis-persist = { path = "../../crates/praxis-persist", features = ["mongodb"] }
+praxis-context = { path = "../../crates/praxis-context" }
+praxis-llm = { path = "../../crates/praxis-llm" }
+praxis-mcp = { path = "../../crates/praxis-mcp" }
 
 # Axum & HTTP
 axum = "0.7"

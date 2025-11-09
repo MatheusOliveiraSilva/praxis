@@ -3,8 +3,8 @@
 use crate::openai::{ReasoningConfig, ResponsesResponse};
 use crate::streaming::{parse_chat_sse_stream, parse_response_sse_stream, StreamEvent};
 use crate::traits::{
-    ChatOptions, ChatRequest, ChatResponse, LLMClient, ResponseOptions, ResponseOutput,
-    ResponseRequest, TokenUsage,
+    ChatClient, ChatOptions, ChatRequest, ChatResponse, LLMClient, ReasoningClient,
+    ResponseOptions, ResponseOutput, ResponseRequest, TokenUsage,
 };
 use crate::types::{Content, Message, ToolCall};
 use anyhow::{Context, Result};
@@ -195,9 +195,13 @@ impl OpenAIClient {
     }
 }
 
+// ============================================================================
+// TRAIT IMPLEMENTATIONS
+// ============================================================================
+
 #[async_trait]
-impl LLMClient for OpenAIClient {
-    async fn chat_completion(&self, request: ChatRequest) -> Result<ChatResponse> {
+impl ChatClient for OpenAIClient {
+    async fn chat(&self, request: ChatRequest) -> Result<ChatResponse> {
         let payload = self.build_chat_request(
             &request.model,
             request.messages,
@@ -240,7 +244,7 @@ impl LLMClient for OpenAIClient {
         })
     }
     
-    async fn chat_completion_stream(
+    async fn chat_stream(
         &self,
         request: ChatRequest,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamEvent>> + Send>>> {
@@ -267,8 +271,11 @@ impl LLMClient for OpenAIClient {
         
         Ok(parse_chat_sse_stream(response))
     }
+    }
     
-    async fn response(&self, request: ResponseRequest) -> Result<ResponseOutput> {
+#[async_trait]
+impl ReasoningClient for OpenAIClient {
+    async fn reason(&self, request: ResponseRequest) -> Result<ResponseOutput> {
         let payload = self.build_response_request(
             &request.model,
             request.input,
@@ -313,7 +320,7 @@ impl LLMClient for OpenAIClient {
         })
     }
     
-    async fn response_stream(
+    async fn reason_stream(
         &self,
         request: ResponseRequest,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamEvent>> + Send>>> {
@@ -342,6 +349,9 @@ impl LLMClient for OpenAIClient {
         Ok(parse_response_sse_stream(response))
     }
 }
+
+// OpenAI supports both chat and reasoning
+impl LLMClient for OpenAIClient {}
 
 // ============================================================================
 // OPENAI-SPECIFIC RESPONSE TYPES (for Chat Completions)
