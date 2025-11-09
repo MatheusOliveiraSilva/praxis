@@ -1,5 +1,5 @@
 use anyhow::Result;
-use praxis_llm::{LLMClient, OpenAIClient, ResponseRequest, Message, ReasoningConfig};
+use praxis_llm::{ReasoningClient, OpenAIClient, ResponseRequest, Message, ReasoningConfig};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -11,7 +11,7 @@ async fn main() -> Result<()> {
         vec![Message::human("Solve this problem: If a train travels 120 km in 2 hours, what is its average speed? And after that make a dynamic programming problem that can be solved in O(n) time and space complexity.")]
     ).with_reasoning(ReasoningConfig::medium());
 
-    let response = client.response(request).await?;
+    let response = client.reason(request).await?;
 
     if let Some(reasoning) = &response.reasoning {
         println!("Reasoning:\n{}\n", reasoning);

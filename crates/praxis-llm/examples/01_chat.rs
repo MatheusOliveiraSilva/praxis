@@ -1,5 +1,5 @@
 use anyhow::Result;
-use praxis_llm::{LLMClient, OpenAIClient, ChatRequest, Message};
+use praxis_llm::{ChatClient, OpenAIClient, ChatRequest, Message};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -7,11 +7,11 @@ async fn main() -> Result<()> {
     let client = OpenAIClient::new(api_key)?;
 
     let request = ChatRequest::new(
-        "gpt-5",
+        "gpt-4o",
         vec![Message::human("What is the capital of France?")]
     );
 
-    let response = client.chat_completion(request).await?;
+    let response = client.chat(request).await?;
 
     println!("Response: {}", response.content.unwrap_or_default());
     

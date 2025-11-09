@@ -1,5 +1,5 @@
 use anyhow::Result;
-use praxis_llm::{LLMClient, OpenAIClient, ResponseRequest, Message, ReasoningConfig, StreamEvent};
+use praxis_llm::{ReasoningClient, OpenAIClient, ResponseRequest, Message, ReasoningConfig, StreamEvent};
 use futures::StreamExt;
 
 #[tokio::main]
@@ -14,7 +14,7 @@ async fn main() -> Result<()> {
 
     println!("Streaming response with reasoning:\n");
     
-    let mut stream = client.response_stream(request).await?;
+    let mut stream = client.reason_stream(request).await?;
     let mut reasoning_displayed = false;
 
     while let Some(event) = stream.next().await {
