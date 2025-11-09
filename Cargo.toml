@@ -5,7 +5,7 @@ members = [
     "crates/praxis-types",
     "crates/praxis-graph",
     "crates/praxis-mcp",
-    "crates/praxis-persist",
+    "crates/praxis-persist", "crates/praxis-context",
 ]
 exclude = [
     "examples/praxis-api",

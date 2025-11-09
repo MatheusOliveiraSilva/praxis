@@ -1,0 +1,17 @@
+[package]
+name = "praxis-context"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+praxis-types = { path = "../praxis-types" }
+praxis-llm = { path = "../praxis-llm" }
+praxis-persist = { path = "../praxis-persist" }
+
+async-trait = "0.1"
+anyhow = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+tiktoken-rs = "0.6"
+chrono = { workspace = true }
+futures = { workspace = true }
