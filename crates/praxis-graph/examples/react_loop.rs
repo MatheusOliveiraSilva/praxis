@@ -32,7 +32,7 @@ async fn main() -> Result<()> {
 
     // Parse MCP servers from environment
     let mcp_servers = std::env::var("MCP_SERVERS")
-        .unwrap_or_else(|_| "http://localhost:8000/mcp".to_string());
+        .unwrap_or_else(|_| "http://localhost:8005/mcp".to_string());
 
     // Create MCP tool executor (aggregates multiple servers)
     let mcp_executor = Arc::new(MCPToolExecutor::new());
