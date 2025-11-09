@@ -1,6 +1,14 @@
 # Praxis Documentation
 
-Welcome to the Praxis documentation! This directory contains all architectural decisions, design documents, and planning materials for the project.
+Welcome to the Praxis documentation! This directory contains architectural decisions, design documents, and planning materials.
+
+---
+
+## 📚 Quick Start
+
+**New to Praxis?** Start with the [main crate README](../../crates/praxis/README.md) for a quick introduction.
+
+**Want to understand the architecture?** Read [architecture.md](./architecture.md) for the complete system overview.
 
 ---
 
@@ -8,141 +16,77 @@ Welcome to the Praxis documentation! This directory contains all architectural d
 
 ### Core Documents
 
-**[plan.md](./plan.md)** - The guiding philosophy and learning journey
+**[plan.md](./plan.md)** - Project philosophy and learning approach
 - Project goals and principles
-- Learning approach (incremental, reflective)
-- Working methodology with AI assistance
+- Incremental, reflective learning methodology
 
-**[architecture.md](./architecture.md)** - Consolidated architecture document
-- Complete system overview
-- All core components (Node, Graph, Router, StreamEvent)
-- Data flow and design decisions
-- Scalability properties
-- **Start here for full system understanding**
+**[architecture.md](./architecture.md)** - Complete system architecture
+- System overview and design decisions
+- Core components (Graph, Node, Router, StreamEvent)
+- Data flow and scalability properties
+- **Start here for full understanding**
 
 ---
 
-## 🔄 Architecture Evolution (Checkpoints)
+## 🔄 Architecture Evolution
 
-These documents show how the architecture evolved over time. Read them in order for context, or jump to specific topics:
+These documents show how the architecture evolved:
 
 ### ✅ [Checkpoint 1: Node Abstraction](./architecture-checkpoint-1-node.md)
-**Focus:** Basic unit of computation
-
-- What is a Node?
-- Node contract and responsibilities
-- GraphState structure
-- Event channels (bounded)
-- Behavior clarifications
-
-**Key insight:** Nodes execute, they don't decide flow.
-
----
+Basic unit of computation - Node contract and GraphState structure.
 
 ### ✅ [Checkpoint 2: Graph Orchestration](./architecture-checkpoint-2-graph.md)
-**Focus:** Execution flow and coordination
-
-- Graph definition and responsibilities
-- Execution loop design
-- Router pattern (separation of routing logic)
-- Error handling (tool failures vs app failures)
-- Guardrails (timeouts, max iterations, cancellation)
-- Stateless design for horizontal scaling
-
-**Key insight:** Graph orchestrates, Router decides, Nodes execute.
-
----
+Execution flow, Router pattern, error handling, and guardrails.
 
 ### ✅ [Checkpoint 3: StreamEvent & Persistence](./architecture-checkpoint-3-streamevents.md)
-**Focus:** Real-time streaming and data model
+Real-time streaming, event model, and persistence strategy.
 
-- StreamEvent structure (all event types)
-- Serialization for SSE (flat JSON)
-- MessageAccumulator (generic finalization logic)
-- ContentItem flat list (not grouped blocks)
-- Hybrid persistence strategy (accumulate → save once)
-- MongoDB schema design
+### ✅ [Checkpoint 4: Developer Experience](./architecture-checkpoint-4-dx.md)
+High-level API design and developer experience improvements.
 
-**Key insight:** Flat list of content items simplifies everything (frontend, DB, ML).
+### ✅ [Checkpoint 5: MCP Integration](./architecture-checkpoint-5-mcp.md)
+Model Context Protocol integration and tool execution.
 
----
+### ✅ [Checkpoint 6: API Layer](./architecture-checkpoint-6-api.md)
+REST API wrapper and HTTP integration.
 
-### ✅ [Checkpoint 4: Developer Experience & High-Level API](./architecture-checkpoint-4-dx.md) 🆕
-**Focus:** Making Praxis easy to use and widely adopted
+### ✅ [Checkpoint 7: DX Enhancements](./architecture-checkpoint-7-dx.md)
+Developer experience improvements and ergonomics.
 
-- Vision: THE framework for Rust AI agents
-- Gap analysis (what's missing for great DX)
-- Three-layer architecture (DX, Core, Integration)
-- `praxis-agent` crate (Agent, AgentBuilder)
-- `praxis-registry` crate (MCPRegistry, ToolRegistry)
-- Config file support (praxis.toml)
-- Agent templates (RAG, Code, Support)
-- Middleware system (extensibility)
-- Updated roadmap with DX phase
-
-**Key insight:** Technical excellence + Developer joy = Adoption.
+### ✅ [Checkpoint 8: Persistence Layer](./architecture-checkpoint-8-persistence.md)
+Persistence architecture, context management, and incremental saving.
 
 ---
 
-## 🎯 Quick Navigation
+## 🏗️ Current Architecture
 
-**For understanding the system:**
-- Start with [architecture.md](./architecture.md) for complete overview
-- Read checkpoints 1-3 for deep understanding of runtime
-- Read checkpoint 4 for understanding of developer experience
+Praxis consists of focused crates:
 
-**For implementation:**
-- Follow the phases in [architecture.md Next Steps](./architecture.md#next-steps)
-- Checkpoint 4 has detailed API designs for DX layer
+- **`praxis`**: Main crate that re-exports everything
+- **`praxis-graph`**: React agent orchestrator with graph execution
+- **`praxis-llm`**: Provider-agnostic LLM client (OpenAI, Azure)
+- **`praxis-mcp`**: Model Context Protocol client and executor
+- **`praxis-persist`**: Persistence layer with MongoDB support
+- **`praxis-context`**: Context management and summarization
 
-**For philosophy and learning:**
-- Read [plan.md](./plan.md) to understand the project's approach
-
----
-
-## 📊 Visual Summary
-
-```
-┌─────────────────────────────────────────┐
-│    DEVELOPER EXPERIENCE LAYER           │  ← Checkpoint 4
-│    (Agent, Builder, Registry,           │
-│     Templates, Middleware)              │
-└─────────────────────────────────────────┘
-                  ↓
-┌─────────────────────────────────────────┐
-│    CORE RUNTIME LAYER                   │  ← Checkpoints 1-3
-│    (Node, Graph, Router,                │
-│     StreamEvent, MessageAccumulator)    │
-└─────────────────────────────────────────┘
-                  ↓
-┌─────────────────────────────────────────┐
-│    INTEGRATION LAYER                    │  ← Phase 2-3
-│    (LLM, MCP, Tools, DB, Gateway)       │
-└─────────────────────────────────────────┘
-```
+**Key Design Decisions:**
+- Types live in `praxis-graph` (no separate `praxis-types` crate)
+- Generic `EventAccumulator` with `StreamEventExtractor` trait for flexibility
+- Separation of persistence (data access) and context management (logic)
+- Zero-copy streaming optimizations
 
 ---
 
 ## 🚀 Current Status
 
-- ✅ **Architecture design complete** (Checkpoints 1-4)
-- ✅ **DX strategy defined** (Checkpoint 4)
-- 🚧 **Implementation in progress** (praxis-llm crate)
-- 📋 **Next:** Implement praxis-types, praxis-graph, then praxis-agent
+- ✅ **Core runtime complete** (Graph, Node, Router, StreamEvent)
+- ✅ **LLM integration** (OpenAI, Azure with streaming)
+- ✅ **MCP integration** (Tool execution)
+- ✅ **Persistence layer** (MongoDB with incremental saving)
+- ✅ **Context management** (Automatic summarization)
+- ✅ **Main crate** (`praxis` aggregates all crates)
 
 ---
 
-## 💡 Contributing to Docs
-
-When adding new architectural decisions:
-1. For major changes, create a new checkpoint document
-2. Update `architecture.md` with consolidated changes
-3. Add links in this README
-4. Update version and date in main documents
-
----
-
-**Last updated:** 2025-11-07  
-**Current focus:** Checkpoint 4 - Developer Experience Layer
-
-
+**Last updated:** 2025-11-09  
+**Current focus:** Production readiness and documentation

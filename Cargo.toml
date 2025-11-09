@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "crates/praxis",
     "crates/praxis-llm",
     "crates/praxis-graph",
     "crates/praxis-mcp",

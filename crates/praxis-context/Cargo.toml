@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-praxis-types = { path = "../praxis-types" }
 praxis-llm = { path = "../praxis-llm" }
 praxis-persist = { path = "../praxis-persist" }
 
