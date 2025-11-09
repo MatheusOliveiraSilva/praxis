@@ -2,18 +2,18 @@ use crate::node::{EventSender, Node, NodeType};
 use anyhow::Result;
 use async_trait::async_trait;
 use futures::StreamExt;
-use praxis_llm::{ChatOptions, ChatRequest, LLMClient, Message, ToolChoice};
+use praxis_llm::{ChatClient, ChatOptions, ChatRequest, Message, ToolChoice};
 use praxis_mcp::MCPToolExecutor;
 use praxis_types::GraphState;
 use std::sync::Arc;
 
 pub struct LLMNode {
-    client: Arc<dyn LLMClient>,
+    client: Arc<dyn ChatClient>,
     mcp_executor: Arc<MCPToolExecutor>,
 }
 
 impl LLMNode {
-    pub fn new(client: Arc<dyn LLMClient>, mcp_executor: Arc<MCPToolExecutor>) -> Self {
+    pub fn new(client: Arc<dyn ChatClient>, mcp_executor: Arc<MCPToolExecutor>) -> Self {
         Self { 
             client,
             mcp_executor,
@@ -62,7 +62,7 @@ impl Node for LLMNode {
             .with_options(options);
 
         // Call LLM with streaming
-        let mut stream = self.client.chat_completion_stream(request).await?;
+        let mut stream = self.client.chat_stream(request).await?;
 
         // Track tool calls as they stream in
         let mut accumulated_tool_calls: Vec<praxis_llm::ToolCall> = Vec::new();

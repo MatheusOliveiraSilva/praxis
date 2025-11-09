@@ -88,7 +88,7 @@ impl DefaultContextStrategy {
             }],
         );
         
-        let response = self.llm_client.chat_completion(request).await?;
+        let response = self.llm_client.chat(request).await?;
         
         let summary = response.content.unwrap_or_else(|| "Summary generation failed".to_string());
         
