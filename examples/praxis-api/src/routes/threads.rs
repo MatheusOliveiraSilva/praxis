@@ -3,10 +3,8 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use std::str::FromStr;
 
 use praxis_persist::{ThreadMetadata, Thread, ThreadSummary};
 use crate::{error::{ApiError, ApiResult}, state::AppState};
@@ -71,8 +69,7 @@ pub async fn create_thread(
 ) -> ApiResult<(StatusCode, Json<ThreadResponse>)> {
     let thread = state
         .persist
-        .threads()
-        .create_thread(req.user_id.clone(), req.metadata)
+        .create_thread(&req.user_id, req.metadata)
         .await?;
     
     Ok((StatusCode::CREATED, Json(thread_to_response(thread))))
@@ -100,8 +97,7 @@ pub async fn list_threads(
     
     let threads = state
         .persist
-        .threads()
-        .list_threads(&query.user_id, limit)
+        .list_threads(&query.user_id, Some(limit), None)
         .await?;
     
     let has_more = threads.len() as i64 == limit;
@@ -133,13 +129,9 @@ pub async fn get_thread(
     State(state): State<Arc<AppState>>,
     Path(thread_id): Path<String>,
 ) -> ApiResult<Json<ThreadResponse>> {
-    let object_id = ObjectId::from_str(&thread_id)
-        .map_err(|_| ApiError::BadRequest("Invalid thread ID format".to_string()))?;
-    
     let thread = state
         .persist
-        .threads()
-        .get_thread(object_id)
+        .get_thread(&thread_id)
         .await?
         .ok_or_else(|| ApiError::ThreadNotFound(thread_id))?;
     
@@ -163,34 +155,27 @@ pub async fn delete_thread(
     State(state): State<Arc<AppState>>,
     Path(thread_id): Path<String>,
 ) -> ApiResult<StatusCode> {
-    let object_id = ObjectId::from_str(&thread_id)
-        .map_err(|_| ApiError::BadRequest("Invalid thread ID format".to_string()))?;
-    
     // Check if thread exists
     let thread = state
         .persist
-        .threads()
-        .get_thread(object_id)
+        .get_thread(&thread_id)
         .await?;
     
     if thread.is_none() {
-        return Err(ApiError::ThreadNotFound(thread_id));
+        return Err(ApiError::ThreadNotFound(thread_id.clone()));
     }
     
-    // Delete all messages in the thread first
-    // (In a real app, you might want to do this in a transaction or have cascade delete)
-    // For now, we'll just return success as the thread will be orphaned in MongoDB
+    let user_id = thread.unwrap().user_id;
     
-    // Note: ThreadRepository doesn't have a delete method yet
-    // We would need to add it to the persist layer
-    // For now, just return NO_CONTENT to satisfy the API contract
+    // Delete the thread (includes deleting messages in MongoDB implementation)
+    state.persist.delete_thread(&thread_id, &user_id).await?;
     
     Ok(StatusCode::NO_CONTENT)
 }
 
 fn thread_to_response(thread: Thread) -> ThreadResponse {
     ThreadResponse {
-        thread_id: thread.id.to_hex(),
+        thread_id: thread.id,
         user_id: thread.user_id,
         created_at: thread.created_at,
         updated_at: thread.updated_at,
