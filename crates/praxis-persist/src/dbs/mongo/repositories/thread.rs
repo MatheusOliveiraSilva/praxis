@@ -31,12 +31,14 @@ impl MongoThreadRepository {
         user_id: String,
         metadata: ThreadMetadata,
     ) -> Result<MongoThread> {
+        let now = Utc::now();
         let thread = MongoThread {
             id: ObjectId::new(),
             user_id,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: now,
+            updated_at: now,
             metadata,
+            last_summary_update: now,
             summary: None,
         };
         
@@ -82,11 +84,13 @@ impl MongoThreadRepository {
         thread_id: ObjectId,
         summary: ThreadSummary,
     ) -> Result<()> {
+        let now = bson::DateTime::now();
         let filter = doc! { "_id": thread_id };
         let update = doc! {
             "$set": {
                 "summary": bson::to_bson(&summary)?,
-                "updated_at": bson::DateTime::now()
+                "last_summary_update": now,
+                "updated_at": now
             }
         };
         

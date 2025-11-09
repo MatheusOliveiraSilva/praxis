@@ -105,31 +105,37 @@ impl ContextStrategy for DefaultContextStrategy {
         thread_id: &str,
         persist_client: Arc<dyn PersistenceClient>,
     ) -> Result<ContextWindow> {
-        // 1. Get thread and determine which messages to use
+        // 1. Get thread
         let thread = persist_client.get_thread(thread_id).await?;
         
-        let (existing_summary, messages_to_evaluate) = 
-            if let Some(summary) = thread.as_ref().and_then(|t| t.summary.as_ref()) {
-                // Has summary - get only messages after last summary
-                let recent_msgs = persist_client.get_messages_after(thread_id, summary.generated_at).await?;
-                (Some(summary.text.as_str()), recent_msgs)
-            } else {
-                // No summary (or no thread) - get all messages
-                let all_msgs = persist_client.get_messages(thread_id).await?;
-                (None, all_msgs)
-            };
+        let messages_to_evaluate = if let Some(thread) = &thread {
+            persist_client.get_messages_after(thread_id, thread.last_summary_update).await?
+        } else {
+            // No thread found - get all messages (shouldn't happen in normal flow)
+            persist_client.get_messages(thread_id).await?
+        };
         
         if messages_to_evaluate.is_empty() {
+            // Extract summary text if exists (for prompt)
+            let existing_summary = thread.as_ref()
+                .and_then(|t| t.summary.as_ref())
+                .map(|s| s.text.as_str());
+            
             return Ok(ContextWindow {
                 system_prompt: self.build_system_prompt(existing_summary),
                 messages: vec![],
             });
         }
         
-        // 2. Count tokens of CURRENT WINDOW (not all messages)
+        // 3. Count tokens of CURRENT WINDOW
         let current_window_tokens = self.count_tokens(&messages_to_evaluate)?;
         
-        // 3. If current window exceeds max_tokens, spawn async summary generation
+        // 4. Extract existing summary (if any)
+        let existing_summary = thread.as_ref()
+            .and_then(|t| t.summary.as_ref())
+            .map(|s| s.text.as_str());
+        
+        // 5. If current window exceeds max_tokens, spawn async summary generation
         if current_window_tokens > self.max_tokens {
             // Clone everything needed for fire-and-forget task
             let messages_clone = messages_to_evaluate.clone();
@@ -183,10 +189,10 @@ impl ContextStrategy for DefaultContextStrategy {
             });
         }
         
-        // 4. Build system prompt with existing summary (if any)
+        // 6. Build system prompt with existing summary (if any)
         let system_prompt = self.build_system_prompt(existing_summary);
         
-        // 5. Convert DBMessage → praxis_llm::Message
+        // 7. Convert DBMessage → praxis_llm::Message
         let llm_messages = messages_to_evaluate
             .into_iter()
             .filter_map(|msg| msg.try_into().ok())

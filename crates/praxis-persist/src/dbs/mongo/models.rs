@@ -38,6 +38,7 @@ pub struct MongoThread {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub metadata: ThreadMetadata,
+    pub last_summary_update: DateTime<Utc>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub summary: Option<ThreadSummary>,
 }
@@ -99,6 +100,7 @@ impl From<MongoThread> for DBThread {
             created_at: thread.created_at,
             updated_at: thread.updated_at,
             metadata: thread.metadata,
+            last_summary_update: thread.last_summary_update,
             summary: thread.summary,
         }
     }

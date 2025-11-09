@@ -9,6 +9,7 @@ pub struct Thread {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub metadata: ThreadMetadata,
+    pub last_summary_update: DateTime<Utc>,
     pub summary: Option<ThreadSummary>,
 }
 
