@@ -1,5 +1,9 @@
 # Praxis AI Agent Framework
 
+[![Crates.io](https://img.shields.io/crates/v/praxis-graph.svg)](https://crates.io/crates/praxis-graph)
+[![Documentation](https://docs.rs/praxis-graph/badge.svg)](https://docs.rs/praxis-graph)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
 A high-performance, production-ready AI agent framework built in Rust with Model Context Protocol (MCP) integration, LLM orchestration, and real-time streaming capabilities.
 
 ## 🚀 Quick Start
@@ -35,12 +39,12 @@ curl http://localhost:8000/health
 
 Praxis is a **Rust framework for building AI agent backends** with:
 
-### Framework Crates (Ready for crates.io)
-- **praxis-types**: Core types and event model
-- **praxis-graph**: React agent orchestration pattern
-- **praxis-llm**: OpenAI/Azure LLM integration
-- **praxis-mcp**: Model Context Protocol client
-- **praxis-persist**: MongoDB persistence layer
+### Framework Crates (Published on crates.io)
+- **[praxis-types](https://crates.io/crates/praxis-types)**: Core types and event model
+- **[praxis-graph](https://crates.io/crates/praxis-graph)**: React agent orchestration pattern
+- **[praxis-llm](https://crates.io/crates/praxis-llm)**: OpenAI/Azure LLM integration
+- **[praxis-mcp](https://crates.io/crates/praxis-mcp)**: Model Context Protocol client
+- **[praxis-persist](https://crates.io/crates/praxis-persist)**: MongoDB persistence layer
 
 ### Example Application
 - **praxis-api**: Full REST API with SSE streaming (see `examples/`)
