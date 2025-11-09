@@ -16,6 +16,7 @@ readme = "README.md"
 praxis-types = { version = "0.1.0", path = "../praxis-types" }
 praxis-llm = { version = "0.1.0", path = "../praxis-llm" }
 praxis-mcp = { version = "0.1.0", path = "../praxis-mcp" }
+praxis-persist = { version = "0.1.0", path = "../praxis-persist" }
 tokio.workspace = true
 anyhow.workspace = true
 async-trait.workspace = true
