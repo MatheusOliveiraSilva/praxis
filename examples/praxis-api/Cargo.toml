@@ -10,12 +10,12 @@ name = "praxis-api"
 path = "src/main.rs"
 
 [dependencies]
-# Praxis crates
-praxis-graph = { path = "../../crates/praxis-graph" }
-praxis-persist = { path = "../../crates/praxis-persist" }
-praxis-llm = { path = "../../crates/praxis-llm" }
-praxis-mcp = { path = "../../crates/praxis-mcp" }
-praxis-types = { path = "../../crates/praxis-types" }
+# Praxis crates (from crates.io)
+praxis-graph = "0.1.0"
+praxis-persist = "0.1.0"
+praxis-llm = "0.1.0"
+praxis-mcp = "0.1.0"
+praxis-types = "0.1.0"
 
 # Axum & HTTP
 axum = "0.7"
