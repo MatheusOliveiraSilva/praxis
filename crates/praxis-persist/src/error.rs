@@ -2,12 +2,15 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum PersistError {
+    #[cfg(feature = "mongodb")]
     #[error("Database error: {0}")]
     Database(#[from] mongodb::error::Error),
     
+    #[cfg(feature = "mongodb")]
     #[error("BSON serialization error: {0}")]
     BsonSerialization(#[from] bson::ser::Error),
     
+    #[cfg(feature = "mongodb")]
     #[error("BSON deserialization error: {0}")]
     BsonDeserialization(#[from] bson::de::Error),
     
@@ -26,8 +29,15 @@ pub enum PersistError {
     #[error("Internal error: {0}")]
     Internal(String),
     
-    #[error("LLM error: {0}")]
-    LLM(#[from] anyhow::Error),
+    #[error("Other error: {0}")]
+    Other(String),
+}
+
+// Allow conversion from anyhow::Error
+impl From<anyhow::Error> for PersistError {
+    fn from(err: anyhow::Error) -> Self {
+        PersistError::Other(err.to_string())
+    }
 }
 
 pub type Result<T> = std::result::Result<T, PersistError>;

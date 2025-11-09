@@ -1,6 +1,6 @@
-pub mod thread;
-pub mod message;
+mod db_message;
+mod db_thread;
 
-pub use thread::{Thread, ThreadMetadata, ThreadSummary};
-pub use message::{Message, MessageRole, MessageType};
-
+// Export database-agnostic models
+pub use db_message::{DBMessage, MessageRole, MessageType};
+pub use db_thread::{Thread, ThreadMetadata, ThreadSummary};
