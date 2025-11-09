@@ -4,7 +4,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Reasoning effort level
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ReasoningEffort {
     Low,
@@ -13,7 +13,7 @@ pub enum ReasoningEffort {
 }
 
 /// Summary mode for reasoning
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum SummaryMode {
     Auto,
@@ -21,7 +21,7 @@ pub enum SummaryMode {
 }
 
 /// Reasoning configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ReasoningConfig {
     pub effort: ReasoningEffort,
     pub summary: SummaryMode,
