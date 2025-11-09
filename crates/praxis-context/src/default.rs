@@ -105,21 +105,18 @@ impl ContextStrategy for DefaultContextStrategy {
         thread_id: &str,
         persist_client: Arc<dyn PersistenceClient>,
     ) -> Result<ContextWindow> {
-        // 1. Get thread
-        let thread = persist_client.get_thread(thread_id).await?;
+        // 1. Get thread (must exist - frontend should create it before sending first message)
+        let thread = persist_client.get_thread(thread_id).await?
+            .ok_or_else(|| anyhow::anyhow!("Thread {} not found - should be created before sending messages", thread_id))?;
         
-        let messages_to_evaluate = if let Some(thread) = &thread {
-            persist_client.get_messages_after(thread_id, thread.last_summary_update).await?
-        } else {
-            // No thread found - get all messages (shouldn't happen in normal flow)
-            persist_client.get_messages(thread_id).await?
-        };
+        // 2. Fetch messages after last_summary_update
+        let messages_to_evaluate = persist_client
+            .get_messages_after(thread_id, thread.last_summary_update)
+            .await?;
         
         if messages_to_evaluate.is_empty() {
             // Extract summary text if exists (for prompt)
-            let existing_summary = thread.as_ref()
-                .and_then(|t| t.summary.as_ref())
-                .map(|s| s.text.as_str());
+            let existing_summary = thread.summary.as_ref().map(|s| s.text.as_str());
             
             return Ok(ContextWindow {
                 system_prompt: self.build_system_prompt(existing_summary),
@@ -131,9 +128,7 @@ impl ContextStrategy for DefaultContextStrategy {
         let current_window_tokens = self.count_tokens(&messages_to_evaluate)?;
         
         // 4. Extract existing summary (if any)
-        let existing_summary = thread.as_ref()
-            .and_then(|t| t.summary.as_ref())
-            .map(|s| s.text.as_str());
+        let existing_summary = thread.summary.as_ref().map(|s| s.text.as_str());
         
         // 5. If current window exceeds max_tokens, spawn async summary generation
         if current_window_tokens > self.max_tokens {
