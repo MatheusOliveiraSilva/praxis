@@ -1,12 +1,12 @@
 pub mod types;
 pub mod traits;
 pub mod streaming;
+pub mod buffer_utils;
 pub mod openai;
-pub mod mcp;
-pub mod history;
-pub mod client;
 
 pub use traits::{
+    ChatClient,
+    ReasoningClient,
     LLMClient, 
     ChatRequest, ChatResponse, ChatOptions,
     ResponseRequest, ResponseOutput, ResponseOptions,
@@ -17,5 +17,4 @@ pub use streaming::StreamEvent;
 pub use openai::OpenAIClient;
 pub use openai::{ReasoningConfig, ReasoningEffort, SummaryMode};
 pub use types::{Message, Content, Tool, ToolCall, ToolChoice};
-pub use history::{ContentItem, AssistantMessage, reconstruct_messages, reconstruct_conversation};
 

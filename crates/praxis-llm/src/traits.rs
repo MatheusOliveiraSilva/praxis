@@ -7,22 +7,38 @@ use futures::Stream;
 use serde::{Deserialize, Serialize};
 use std::pin::Pin;
 
+/// Trait for chat-based LLM interactions (GPT-4, etc)
+/// 
+/// Provides both streaming and non-streaming completions for conversational use cases.
 #[async_trait]
-pub trait LLMClient: Send + Sync {
-    async fn chat_completion(&self, request: ChatRequest) -> Result<ChatResponse>;
+pub trait ChatClient: Send + Sync {
+    /// Non-streaming chat completion
+    async fn chat(&self, request: ChatRequest) -> Result<ChatResponse>;
     
-    async fn chat_completion_stream(
+    /// Streaming chat completion
+    async fn chat_stream(
         &self,
         request: ChatRequest,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamEvent>> + Send>>>;
+}
+
+/// Trait for reasoning-based LLM interactions (o1 models)
+/// 
+/// Provides access to models with extended reasoning capabilities.
+#[async_trait]
+pub trait ReasoningClient: Send + Sync {
+    /// Non-streaming reasoning completion
+    async fn reason(&self, request: ResponseRequest) -> Result<ResponseOutput>;
     
-    async fn response(&self, request: ResponseRequest) -> Result<ResponseOutput>;
-    
-    async fn response_stream(
+    /// Streaming reasoning completion
+    async fn reason_stream(
         &self,
         request: ResponseRequest,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamEvent>> + Send>>>;
 }
+
+/// Convenience trait for clients that support both chat and reasoning
+pub trait LLMClient: ChatClient + ReasoningClient {}
 
 #[derive(Debug, Clone)]
 pub struct ChatRequest {
