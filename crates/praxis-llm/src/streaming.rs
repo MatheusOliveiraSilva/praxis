@@ -1,9 +1,12 @@
-use std::pin::Pin;
 use anyhow::Result;
+use futures::Stream;
 use reqwest::Response;
-use std::collections::VecDeque;
-use futures::{Stream, StreamExt};
 use serde::{Deserialize, Serialize};
+use std::pin::Pin;
+
+use crate::buffer_utils::{SseLineParser, parse_sse_stream};
+
+pub use crate::buffer_utils::{CircularLineBuffer, EventBatcher};
 
 use crate::openai::ResponseStreamChunk;
 
@@ -120,127 +123,71 @@ impl ChatStreamChunk {
     }
 }
 
+/// Chat SSE parser (Strategy Pattern)
+struct ChatSseParser;
+
+impl SseLineParser for ChatSseParser {
+    fn parse_data_line(&self, data: &str) -> Result<Vec<StreamEvent>> {
+        let chunk: ChatStreamChunk = serde_json::from_str(data)
+            .map_err(|e| anyhow::anyhow!("Failed to parse chat chunk: {}", e))?;
+        
+        Ok(chunk.to_stream_events())
+    }
+}
+
+/// Response SSE parser (Strategy Pattern)
+struct ResponseSseParser;
+
+impl SseLineParser for ResponseSseParser {
+    fn parse_data_line(&self, data: &str) -> Result<Vec<StreamEvent>> {
+        let chunk: ResponseStreamChunk = serde_json::from_str(data)
+            .map_err(|e| anyhow::anyhow!("Failed to parse response chunk: {}", e))?;
+        
+        let mut events = Vec::new();
+        
+        if chunk.is_done() {
+            events.push(StreamEvent::Done {
+                finish_reason: chunk.status.clone(),
+            });
+            return Ok(events);
+        }
+        
+        let is_reasoning = chunk.output_index.map(|idx| idx == 0).unwrap_or(false);
+        
+        if is_reasoning {
+            if let Some(text) = chunk.reasoning_text() {
+                if !text.is_empty() {
+                    events.push(StreamEvent::Reasoning { content: text });
+                }
+            }
+        } else {
+            if let Some(text) = chunk.message_text() {
+                if !text.is_empty() {
+                    events.push(StreamEvent::Message { content: text });
+                }
+            }
+        }
+        
+        Ok(events)
+    }
+}
+
 pub fn parse_chat_sse_stream(
     response: Response,
 ) -> Pin<Box<dyn Stream<Item = Result<StreamEvent>> + Send>> {
-    let stream = response.bytes_stream();
-    
-    Box::pin(async_stream::stream! {
-        let mut byte_chunks = Box::pin(stream);
-        let mut buffer = VecDeque::with_capacity(4096);
-        
-        while let Some(chunk_result) = byte_chunks.next().await {
-            match chunk_result {
-                Ok(bytes) => {
-                    buffer.extend(bytes);
-                    
-                    while let Some(newline_pos) = buffer.iter().position(|&b| b == b'\n') {
-                        let line_bytes: Vec<u8> = buffer.drain(..=newline_pos).collect();
-                        
-                        if let Ok(line_str) = std::str::from_utf8(&line_bytes) {
-                            let line = line_str.trim();
-                            
-                            if line.is_empty() {
-                                continue;
-                            }
-                            
-                            if let Some(data) = line.strip_prefix("data: ") {
-                                if data == "[DONE]" {
-                                    yield Ok(StreamEvent::Done { finish_reason: None });
-                                    break;
-                                }
-                                
-                                match serde_json::from_str::<ChatStreamChunk>(data) {
-                                    Ok(chunk) => {
-                                        for event in chunk.to_stream_events() {
-                                            yield Ok(event);
-                                        }
-                                    }
-                                    Err(e) => yield Err(anyhow::anyhow!("Failed to parse chat chunk: {}", e)),
-                                }
-                            }
-                        }
-                    }
-                }
-                Err(e) => yield Err(anyhow::anyhow!("Stream error: {}", e)),
-            }
-        }
-    })
+    parse_sse_stream(response, ChatSseParser)
 }
 
 pub fn parse_response_sse_stream(
     response: Response,
 ) -> Pin<Box<dyn Stream<Item = Result<StreamEvent>> + Send>> {
-    let stream = response.bytes_stream();
-    
-    Box::pin(async_stream::stream! {
-        let mut byte_chunks = Box::pin(stream);
-        let mut buffer = VecDeque::with_capacity(4096);
-        
-        while let Some(chunk_result) = byte_chunks.next().await {
-            match chunk_result {
-                Ok(bytes) => {
-                    buffer.extend(bytes);
-                    
-                    while let Some(newline_pos) = buffer.iter().position(|&b| b == b'\n') {
-                        let line_bytes: Vec<u8> = buffer.drain(..=newline_pos).collect();
-                        
-                        if let Ok(line_str) = std::str::from_utf8(&line_bytes) {
-                            let line = line_str.trim();
-                            
-                            if line.is_empty() {
-                                continue;
-                            }
-                            
-                            if let Some(data) = line.strip_prefix("data: ") {
-                                if data == "[DONE]" {
-                                    yield Ok(StreamEvent::Done { finish_reason: None });
-                                    break;
-                                }
-                                
-                                match serde_json::from_str::<ResponseStreamChunk>(data) {
-                                    Ok(chunk) => {
-                                        if chunk.is_done() {
-                                            yield Ok(StreamEvent::Done {
-                                                finish_reason: chunk.status.clone(),
-                                            });
-                                            continue;
-                                        }
-                                        
-                                        let is_reasoning = chunk.output_index.map(|idx| idx == 0).unwrap_or(false);
-                                        
-                                        if is_reasoning {
-                                            if let Some(text) = chunk.reasoning_text() {
-                                                if !text.is_empty() {
-                                                    yield Ok(StreamEvent::Reasoning {
-                                                        content: text,
-                                                    });
-                                                }
-                                            }
-                                        } else {
-                                            if let Some(text) = chunk.message_text() {
-                                                if !text.is_empty() {
-                                                    yield Ok(StreamEvent::Message {
-                                                        content: text,
-                                                    });
-                                                }
-                                            }
-                                        }
-                                    }
-                                    Err(e) => yield Err(anyhow::anyhow!("Failed to parse response chunk: {}", e)),
-                                }
-                            }
-                        }
-                    }
-                }
-                Err(e) => yield Err(anyhow::anyhow!("Stream error: {}", e)),
-            }
-        }
-    })
+    parse_sse_stream(response, ResponseSseParser)
 }
 
 pub use ChatStreamChunk as StreamChunk;
-pub fn parse_sse_stream(response: Response) -> Pin<Box<dyn Stream<Item = Result<StreamEvent>> + Send>> {
+
+/// Default SSE parser (uses chat parser for backwards compatibility)
+pub fn parse_sse_stream_legacy(response: Response) -> Pin<Box<dyn Stream<Item = Result<StreamEvent>> + Send>> {
     parse_chat_sse_stream(response)
 }
 
