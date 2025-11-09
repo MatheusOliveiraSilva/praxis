@@ -10,7 +10,7 @@ use std::sync::Arc;
 use chrono::Utc;
 
 use tokio_stream::wrappers::ReceiverStream;
-use praxis_types::{StreamEvent as GraphStreamEvent, GraphInput};
+use praxis_graph::{StreamEvent as GraphStreamEvent, GraphInput};
 use praxis_llm::{Message as LLMMessage, Content};
 use praxis_persist::{DBMessage, MessageRole, MessageType};
 use praxis_graph::PersistenceContext;

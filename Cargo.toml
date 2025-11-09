@@ -2,10 +2,10 @@
 resolver = "2"
 members = [
     "crates/praxis-llm",
-    "crates/praxis-types",
     "crates/praxis-graph",
     "crates/praxis-mcp",
-    "crates/praxis-persist", "crates/praxis-context",
+    "crates/praxis-persist",
+    "crates/praxis-context",
 ]
 exclude = [
     "examples/praxis-api",

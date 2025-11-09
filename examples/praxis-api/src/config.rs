@@ -47,12 +47,12 @@ pub struct LlmConfig {
     pub max_tokens: usize,
 }
 
-impl From<LlmConfig> for praxis_types::LLMConfig {
+impl From<LlmConfig> for praxis_graph::LLMConfig {
     fn from(config: LlmConfig) -> Self {
         Self {
             model: config.model,
-            temperature: None,  // Never send temperature to OpenAI - let it decide
-            max_tokens: None,  // Never send max_tokens to OpenAI - let it decide
+            temperature: None, 
+            max_tokens: None,
         }
     }
 }

@@ -15,7 +15,6 @@ praxis-persist = { path = "../../crates/praxis-persist", features = ["mongodb"] 
 praxis-context = { path = "../../crates/praxis-context" }
 praxis-llm = { path = "../../crates/praxis-llm" }
 praxis-mcp = { path = "../../crates/praxis-mcp" }
-praxis-types = { path = "../../crates/praxis-types" }
 
 # Axum & HTTP
 axum = "0.7"
