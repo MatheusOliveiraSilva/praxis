@@ -68,7 +68,6 @@ pub struct ChatOptions {
     pub max_tokens: Option<u32>,
     pub tools: Option<Vec<Tool>>,
     pub tool_choice: Option<ToolChoice>,
-    /// Reasoning effort for o1 models: "low", "medium", "high"
     pub reasoning_effort: Option<String>,
 }
 

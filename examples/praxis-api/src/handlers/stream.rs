@@ -23,19 +23,14 @@ pub struct SendMessageRequest {
 /// LLM configuration sent per request
 #[derive(Debug, Clone, Deserialize)]
 pub struct RequestLLMConfig {
-    /// Model to use (e.g., "gpt-4o-mini", "o1-mini", "o1-preview")
     pub model: String,
     
-    /// Reasoning effort for o1 models: "low", "medium", "high"
-    /// Ignored for non-o1 models
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reasoning_effort: Option<String>,
     
-    /// Temperature (0.0 - 2.0) - ignored for o1 models
     #[serde(default = "default_temperature")]
     pub temperature: f32,
     
-    /// Max tokens for the response
     #[serde(default = "default_max_tokens")]
     pub max_tokens: u32,
 }

@@ -66,8 +66,15 @@ export function useChat({ thread, onThreadCreated, onThreadUpdate }: UseChatOpti
   /**
    * Send message and handle streaming response
    */
-  const sendMessage = useCallback(async (content: string) => {
+  const sendMessage = useCallback(async (content: string, llmConfig?: any) => {
     if (!content.trim() || chatState.isStreaming) return
+    
+    // Default LLM config
+    const defaultConfig = {
+      model: "gpt-4o-mini",
+      temperature: 0.7,
+      max_tokens: 8000
+    }
     
     // Create or get thread
     let activeThread = thread
@@ -128,7 +135,8 @@ export function useChat({ thread, onThreadCreated, onThreadUpdate }: UseChatOpti
           },
           body: JSON.stringify({
             user_id: USER_ID,
-            content
+            content,
+            llm_config: llmConfig || defaultConfig
           })
         }
       )
