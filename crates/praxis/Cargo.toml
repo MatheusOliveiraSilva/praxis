@@ -19,6 +19,7 @@ praxis-llm = { version = "0.1.1", path = "../praxis-llm" }
 praxis-mcp = { version = "0.1.0", path = "../praxis-mcp" }
 praxis-persist = { version = "0.1.1", path = "../praxis-persist" }
 praxis-context = { version = "0.1.0", path = "../praxis-context" }
+praxis-observability = { version = "0.1.0", path = "../praxis-observability", optional = true }
 
 # Re-export common dependencies
 tokio = { version = "1", features = ["full"] }
@@ -31,6 +32,7 @@ futures = "0.3"
 [features]
 default = []
 mongodb = ["praxis-persist/mongodb"]
+observability = ["praxis-observability", "praxis-graph/observability"]
 
 [lib]
 name = "praxis"
