@@ -154,15 +154,25 @@ impl SseLineParser for ResponseSseParser {
         
         let is_reasoning = chunk.output_index.map(|idx| idx == 0).unwrap_or(false);
         
+        // Debug: log what we're receiving
+        tracing::debug!(
+            "ResponseStreamChunk - output_index: {:?}, is_reasoning: {}, delta: {:?}",
+            chunk.output_index,
+            is_reasoning,
+            chunk.delta
+        );
+        
         if is_reasoning {
             if let Some(text) = chunk.reasoning_text() {
                 if !text.is_empty() {
+                    tracing::debug!("Emitting Reasoning event with {} chars", text.len());
                     events.push(StreamEvent::Reasoning { content: text });
                 }
             }
         } else {
             if let Some(text) = chunk.message_text() {
                 if !text.is_empty() {
+                    tracing::debug!("Emitting Message event with {} chars", text.len());
                     events.push(StreamEvent::Message { content: text });
                 }
             }

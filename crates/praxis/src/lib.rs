@@ -113,7 +113,6 @@ pub use praxis_context::{
     ContextStrategy, ContextWindow, DefaultContextStrategy,
 };
 
-// Re-export observability types (when feature is enabled)
 #[cfg(feature = "observability")]
 pub use praxis_observability::{
     Observer, LangfuseObserver, NodeObservation, NodeObservationData,

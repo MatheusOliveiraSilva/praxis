@@ -16,8 +16,7 @@ interface ModelSelectorProps {
 const MODELS = [
   { value: 'gpt-4o-mini', label: 'GPT-4o Mini', isO1: false },
   { value: 'gpt-4o', label: 'GPT-4o', isO1: false },
-  { value: 'o1-mini', label: 'O1 Mini', isO1: true },
-  { value: 'o1-preview', label: 'O1 Preview', isO1: true },
+  { value: 'gpt-5', label: 'GPT-5', isO1: true },
 ]
 
 const REASONING_EFFORTS = ['low', 'medium', 'high']

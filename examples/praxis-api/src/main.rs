@@ -126,6 +126,7 @@ async fn main() -> anyhow::Result<()> {
     let graph = {
         let mut builder = praxis::Graph::builder()
             .llm_client(llm_client.clone())
+            .reasoning_client(llm_client.clone() as Arc<dyn praxis::ReasoningClient>) // OpenAIClient implements both ChatClient and ReasoningClient
             .mcp_executor(Arc::clone(&mcp_executor))
             .with_persistence(persist_client.clone());
         
@@ -139,6 +140,7 @@ async fn main() -> anyhow::Result<()> {
     #[cfg(not(feature = "observability"))]
     let graph = praxis::Graph::builder()
         .llm_client(llm_client.clone())
+        .reasoning_client(llm_client.clone() as Arc<dyn praxis::ReasoningClient>) // OpenAIClient implements both ChatClient and ReasoningClient
         .mcp_executor(Arc::clone(&mcp_executor))
         .with_persistence(persist_client.clone())
         .build()?;

@@ -2,6 +2,7 @@ use crate::node::{Node, NodeType};
 use crate::nodes::{LLMNode, ToolNode};
 use crate::router::{NextNode, Router, SimpleRouter};
 use crate::builder::PersistenceConfig;
+use praxis_llm::ReasoningClient;
 #[cfg(feature = "observability")]
 use crate::builder::ObserverConfig;
 use anyhow::Result;
@@ -20,6 +21,7 @@ pub struct PersistenceContext {
 
 pub struct Graph {
     llm_client: Arc<dyn LLMClient>,
+    reasoning_client: Option<Arc<dyn praxis_llm::ReasoningClient>>,
     mcp_executor: Arc<MCPToolExecutor>,
     config: GraphConfig,
     persistence: Option<Arc<PersistenceConfig>>,
@@ -35,6 +37,7 @@ impl Graph {
     ) -> Self {
         Self {
             llm_client,
+            reasoning_client: None,
             mcp_executor,
             config,
             persistence: None,
@@ -45,6 +48,7 @@ impl Graph {
     
     pub(crate) fn new_with_config(
         llm_client: Arc<dyn LLMClient>,
+        reasoning_client: Option<Arc<dyn praxis_llm::ReasoningClient>>,
         mcp_executor: Arc<MCPToolExecutor>,
         config: GraphConfig,
         persistence: Option<PersistenceConfig>,
@@ -53,6 +57,7 @@ impl Graph {
     ) -> Self {
         Self {
             llm_client,
+            reasoning_client,
             mcp_executor,
             config,
             persistence: persistence.map(Arc::new),
@@ -76,6 +81,7 @@ impl Graph {
 
         // Clone what we need for the spawned task
         let llm_client = Arc::clone(&self.llm_client);
+        let reasoning_client = self.reasoning_client.clone();
         let mcp_executor = Arc::clone(&self.mcp_executor);
         let config = self.config.clone();
         let persistence = self.persistence.clone();
@@ -87,6 +93,7 @@ impl Graph {
                 input,
                 tx.clone(),
                 llm_client,
+                reasoning_client,
                 mcp_executor,
                 config,
                 persistence,
@@ -110,6 +117,7 @@ impl Graph {
         input: GraphInput,
         event_tx: mpsc::Sender<StreamEvent>,
         llm_client: Arc<dyn LLMClient>,
+        reasoning_client: Option<Arc<dyn ReasoningClient>>,
         mcp_executor: Arc<MCPToolExecutor>,
         config: GraphConfig,
         persistence: Option<Arc<PersistenceConfig>>,
@@ -144,7 +152,11 @@ impl Graph {
         event_tx.send(init_event.clone()).await?;
 
         // Create nodes
-        let llm_node = LLMNode::new(llm_client, mcp_executor.clone());
+        let mut llm_node = LLMNode::new(llm_client.clone(), mcp_executor.clone());
+        
+        if let Some(reasoning_client) = reasoning_client.clone() {
+            llm_node = llm_node.with_reasoning_client(reasoning_client);
+        }
         let tool_node = ToolNode::new(mcp_executor);
         let router = SimpleRouter;
 

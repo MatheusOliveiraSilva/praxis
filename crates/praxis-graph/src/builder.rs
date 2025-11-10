@@ -21,6 +21,7 @@ pub struct ObserverConfig {
 /// Builder for constructing a Graph with optional components
 pub struct GraphBuilder {
     llm_client: Option<Arc<dyn LLMClient>>,
+    reasoning_client: Option<Arc<dyn praxis_llm::ReasoningClient>>,
     mcp_executor: Option<Arc<MCPToolExecutor>>,
     config: GraphConfig,
     persistence_config: Option<PersistenceConfig>,
@@ -32,6 +33,7 @@ impl GraphBuilder {
     pub fn new() -> Self {
         Self {
             llm_client: None,
+            reasoning_client: None,
             mcp_executor: None,
             config: GraphConfig::default(),
             persistence_config: None,
@@ -43,6 +45,12 @@ impl GraphBuilder {
     /// Set the LLM client
     pub fn llm_client(mut self, client: Arc<dyn LLMClient>) -> Self {
         self.llm_client = Some(client);
+        self
+    }
+    
+    /// Set the Reasoning client (for gpt-5, o1 models)
+    pub fn reasoning_client(mut self, client: Arc<dyn praxis_llm::ReasoningClient>) -> Self {
+        self.reasoning_client = Some(client);
         self
     }
     
@@ -80,6 +88,7 @@ impl GraphBuilder {
         
         Ok(Graph::new_with_config(
             llm_client,
+            self.reasoning_client,
             mcp_executor,
             self.config,
             self.persistence_config,
