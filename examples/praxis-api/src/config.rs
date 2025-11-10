@@ -7,7 +7,6 @@ pub struct Config {
     pub server: ServerConfig,
     pub cors: CorsConfig,
     pub mongodb: MongoDbConfig,
-    pub llm: LlmConfig,
     pub mcp: McpConfig,
     pub logging: LoggingConfig,
     #[serde(default)]
@@ -41,23 +40,7 @@ pub struct MongoDbConfig {
     pub timeout_ms: u64,
 }
 
-#[derive(Debug, Clone, Deserialize)]
-pub struct LlmConfig {
-    pub model: String,
-    pub temperature: f32,
-    /// Max tokens for context window management (NOT sent to OpenAI)
-    pub max_tokens: usize,
-}
 
-impl From<LlmConfig> for praxis::LLMConfig {
-    fn from(config: LlmConfig) -> Self {
-        Self {
-            model: config.model,
-            temperature: None, 
-            max_tokens: None,
-        }
-    }
-}
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct McpConfig {

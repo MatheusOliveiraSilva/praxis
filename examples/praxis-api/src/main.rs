@@ -70,9 +70,12 @@ async fn main() -> anyhow::Result<()> {
     
     // Create context strategy
     tracing::info!("Initializing context strategy");
+    // Context strategy uses a default max_tokens for managing context window
+    // Actual max_tokens per request is sent via SendMessageRequest
+    const DEFAULT_CONTEXT_MAX_TOKENS: usize = 8000;
     let context_strategy: Arc<dyn praxis::ContextStrategy> = Arc::new(
         praxis::DefaultContextStrategy::new(
-            config.llm.max_tokens,
+            DEFAULT_CONTEXT_MAX_TOKENS,
             llm_client.clone(),
         )
     );

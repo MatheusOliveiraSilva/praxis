@@ -74,6 +74,9 @@ impl OpenAIClient {
         if let Some(max_tokens) = options.max_tokens {
             obj.insert("max_tokens".to_string(), serde_json::json!(max_tokens));
         }
+        if let Some(ref reasoning_effort) = options.reasoning_effort {
+            obj.insert("reasoning_effort".to_string(), serde_json::json!(reasoning_effort));
+        }
         if let Some(tools) = &options.tools {
             obj.insert("tools".to_string(), serde_json::to_value(tools)?);
         }

@@ -33,10 +33,21 @@ impl Node for LLMNode {
         // Get tools from all connected MCP servers
         let tools = self.mcp_executor.get_llm_tools().await?;
         
-        // Build chat request from state
-        let options = ChatOptions::new()
+        // Build chat request from state with dynamic LLM config
+        let mut options = ChatOptions::new()
             .tools(tools)
             .tool_choice(ToolChoice::auto());
+        
+        // Apply LLM config options
+        if let Some(temp) = state.llm_config.temperature {
+            options = options.temperature(temp);
+        }
+        if let Some(max_tokens) = state.llm_config.max_tokens {
+            options = options.max_tokens(max_tokens);
+        }
+        if let Some(ref effort) = state.llm_config.reasoning_effort {
+            options = options.reasoning_effort(effort.clone());
+        }
 
         let request = ChatRequest::new(state.llm_config.model.clone(), state.messages.clone())
             .with_options(options);

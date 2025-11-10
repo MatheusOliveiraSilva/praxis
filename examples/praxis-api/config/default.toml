@@ -12,11 +12,6 @@ database = "praxis"
 pool_size = 10
 timeout_ms = 5000
 
-[llm]
-model = "gpt-4o-mini"
-temperature = 0.7
-max_tokens = 8000
-
 [mcp]
 servers = "http://localhost:8005/mcp"
 

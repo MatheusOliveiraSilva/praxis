@@ -44,6 +44,8 @@ pub struct LLMConfig {
     pub model: String,
     pub temperature: Option<f32>,
     pub max_tokens: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reasoning_effort: Option<String>,
 }
 
 impl LLMConfig {
@@ -52,6 +54,7 @@ impl LLMConfig {
             model: model.into(),
             temperature: None,
             max_tokens: None,
+            reasoning_effort: None,
         }
     }
 
@@ -64,6 +67,11 @@ impl LLMConfig {
         self.max_tokens = Some(tokens);
         self
     }
+
+    pub fn with_reasoning_effort(mut self, effort: impl Into<String>) -> Self {
+        self.reasoning_effort = Some(effort.into());
+        self
+    }
 }
 
 impl Default for LLMConfig {
@@ -72,6 +80,7 @@ impl Default for LLMConfig {
             model: "gpt-4o".to_string(),
             temperature: Some(1.0),
             max_tokens: Some(4096),
+            reasoning_effort: None,
         }
     }
 }
