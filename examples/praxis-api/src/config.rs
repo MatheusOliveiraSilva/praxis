@@ -10,6 +10,8 @@ pub struct Config {
     pub llm: LlmConfig,
     pub mcp: McpConfig,
     pub logging: LoggingConfig,
+    #[serde(default)]
+    pub observability: ObservabilityConfig,
     
     // Secrets (from ENV only)
     #[serde(default)]
@@ -68,6 +70,54 @@ pub struct LoggingConfig {
     pub format: String,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+pub struct ObservabilityConfig {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default = "default_provider")]
+    pub provider: String,
+    #[serde(default)]
+    pub langfuse: LangfuseConfig,
+}
+
+impl Default for ObservabilityConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            provider: "langfuse".to_string(),
+            langfuse: LangfuseConfig::default(),
+        }
+    }
+}
+
+fn default_provider() -> String {
+    "langfuse".to_string()
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct LangfuseConfig {
+    #[serde(default)]
+    pub public_key: String,
+    #[serde(default)]
+    pub secret_key: String,
+    #[serde(default = "default_langfuse_host")]
+    pub host: String,
+}
+
+impl Default for LangfuseConfig {
+    fn default() -> Self {
+        Self {
+            public_key: String::new(),
+            secret_key: String::new(),
+            host: "https://cloud.langfuse.com".to_string(),
+        }
+    }
+}
+
+fn default_langfuse_host() -> String {
+    "https://cloud.langfuse.com".to_string()
+}
+
 impl Config {
     /// Load configuration from TOML files and environment variables
     /// 
@@ -113,6 +163,18 @@ impl Config {
                     .prefix("MCP")
                     .separator("_")
                     .try_parsing(true)
+            )
+            .add_source(
+                Environment::default()
+                    .prefix("OBSERVABILITY")
+                    .separator("_")
+                    .try_parsing(true)
+            )
+            .add_source(
+                Environment::default()
+                    .prefix("LANGFUSE")
+                    .separator("_")
+                    .try_parsing(true)
             );
         
         let config = builder.build()?;
@@ -124,6 +186,19 @@ impl Config {
             .map_err(|_| ConfigError::Message("MONGODB_URI environment variable is required".to_string()))?;
         cfg.openai_api_key = std::env::var("OPENAI_API_KEY")
             .map_err(|_| ConfigError::Message("OPENAI_API_KEY environment variable is required".to_string()))?;
+        
+        if let Ok(enabled) = std::env::var("OBSERVABILITY_ENABLED") {
+            cfg.observability.enabled = enabled.to_lowercase() == "true" || enabled == "1";
+        }
+        if let Ok(host) = std::env::var("LANGFUSE_HOST") {
+            cfg.observability.langfuse.host = host;
+        }
+        if let Ok(public_key) = std::env::var("LANGFUSE_PUBLIC_KEY") {
+            cfg.observability.langfuse.public_key = public_key;
+        }
+        if let Ok(secret_key) = std::env::var("LANGFUSE_SECRET_KEY") {
+            cfg.observability.langfuse.secret_key = secret_key;
+        }
         
         Ok(cfg)
     }

@@ -9,8 +9,12 @@ license = "MIT"
 name = "praxis-api"
 path = "src/main.rs"
 
+[features]
+default = ["observability"]
+observability = ["praxis/observability"]
+
 [dependencies]
-praxis = { version = "0.1.1", features = ["mongodb"] }
+praxis = { path = "../../crates/praxis", features = ["mongodb", "observability"] }
 
 # Axum & HTTP
 axum = "0.7"

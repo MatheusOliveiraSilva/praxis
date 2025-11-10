@@ -24,3 +24,6 @@ servers = "http://localhost:8005/mcp"
 level = "info"
 format = "pretty"  # or "json"
 
+[observability]
+enabled = true
+provider = "langfuse"
