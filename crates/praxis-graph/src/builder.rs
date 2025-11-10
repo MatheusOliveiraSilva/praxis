@@ -12,12 +12,20 @@ pub struct PersistenceConfig {
     pub client: Arc<dyn praxis_persist::PersistenceClient>,
 }
 
+/// Configuration for optional observability
+#[cfg(feature = "observability")]
+pub struct ObserverConfig {
+    pub observer: Arc<dyn praxis_observability::Observer>,
+}
+
 /// Builder for constructing a Graph with optional components
 pub struct GraphBuilder {
     llm_client: Option<Arc<dyn LLMClient>>,
     mcp_executor: Option<Arc<MCPToolExecutor>>,
     config: GraphConfig,
     persistence_config: Option<PersistenceConfig>,
+    #[cfg(feature = "observability")]
+    observer_config: Option<ObserverConfig>,
 }
 
 impl GraphBuilder {
@@ -27,6 +35,8 @@ impl GraphBuilder {
             mcp_executor: None,
             config: GraphConfig::default(),
             persistence_config: None,
+            #[cfg(feature = "observability")]
+            observer_config: None,
         }
     }
     
@@ -54,6 +64,13 @@ impl GraphBuilder {
         self
     }
     
+    /// Enable observability with an Observer
+    #[cfg(feature = "observability")]
+    pub fn with_observer(mut self, observer: Arc<dyn praxis_observability::Observer>) -> Self {
+        self.observer_config = Some(ObserverConfig { observer });
+        self
+    }
+    
     /// Build the Graph
     pub fn build(self) -> Result<Graph> {
         let llm_client = self.llm_client
@@ -61,11 +78,13 @@ impl GraphBuilder {
         let mcp_executor = self.mcp_executor
             .ok_or_else(|| anyhow!("MCP executor is required"))?;
         
-        Ok(Graph::new_with_persistence(
+        Ok(Graph::new_with_config(
             llm_client,
             mcp_executor,
             self.config,
             self.persistence_config,
+            #[cfg(feature = "observability")]
+            self.observer_config,
         ))
     }
 }
