@@ -24,7 +24,7 @@ pub enum ApiError {
     Bson(#[from] bson::de::Error),
     
     #[error("Persistence error: {0}")]
-    Persist(#[from] praxis_persist::PersistError),
+    Persist(#[from] praxis::PersistError),
     
     #[error("Graph execution error: {0}")]
     Graph(#[from] anyhow::Error),

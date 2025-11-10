@@ -6,7 +6,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-use praxis_persist::{ThreadMetadata, Thread, ThreadSummary};
+use praxis::{ThreadMetadata, Thread, ThreadSummary};
 use crate::{error::{ApiError, ApiResult}, state::AppState};
 
 #[derive(Debug, Serialize, Deserialize)]

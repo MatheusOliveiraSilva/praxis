@@ -19,9 +19,7 @@ use praxis_api::{
     handlers::stream,
     state::AppState,
 };
-use praxis_llm::OpenAIClient;
-use praxis_mcp::{MCPClient, MCPToolExecutor};
-use praxis_persist::PersistClient;
+use praxis::{OpenAIClient, MCPClient, MCPToolExecutor, MongoPersistenceClient};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -40,7 +38,7 @@ async fn main() -> anyhow::Result<()> {
     
     // Initialize LLM client
     tracing::info!("Initializing LLM client");
-    let llm_client: Arc<dyn praxis_llm::LLMClient> = Arc::new(OpenAIClient::new(config.openai_api_key.clone())?);
+    let llm_client: Arc<dyn praxis::LLMClient> = Arc::new(OpenAIClient::new(config.openai_api_key.clone())?);
     
     // Initialize MCP executor and connect to servers
     tracing::info!("Connecting to MCP servers");
@@ -62,18 +60,18 @@ async fn main() -> anyhow::Result<()> {
     
     // Initialize persistence client (MongoDB)
     tracing::info!("Connecting to MongoDB");
-    let mongo_client = praxis_persist::MongoPersistenceClient::connect(
+    let mongo_client = MongoPersistenceClient::connect(
         &config.mongodb_uri,
         &config.mongodb.database,
     ).await?;
-    let persist_client: Arc<dyn praxis_persist::PersistenceClient> = Arc::new(mongo_client);
+    let persist_client: Arc<dyn praxis::PersistenceClient> = Arc::new(mongo_client);
     
     tracing::info!("MongoDB connected");
     
     // Create context strategy
     tracing::info!("Initializing context strategy");
-    let context_strategy: Arc<dyn praxis_context::ContextStrategy> = Arc::new(
-        praxis_context::DefaultContextStrategy::new(
+    let context_strategy: Arc<dyn praxis::ContextStrategy> = Arc::new(
+        praxis::DefaultContextStrategy::new(
             config.llm.max_tokens,
             llm_client.clone(),
         )
@@ -84,7 +82,7 @@ async fn main() -> anyhow::Result<()> {
     
     // Create graph with persistence
     tracing::info!("Initializing Graph orchestrator with persistence");
-    let graph = praxis_graph::Graph::builder()
+    let graph = praxis::Graph::builder()
         .llm_client(llm_client.clone())
         .mcp_executor(Arc::clone(&mcp_executor))
         .with_persistence(persist_client.clone())

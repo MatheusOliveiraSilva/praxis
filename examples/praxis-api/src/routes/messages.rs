@@ -2,12 +2,10 @@ use axum::{
     extract::{Path, Query, State},
     Json,
 };
-use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use std::str::FromStr;
 
-use praxis_persist::{Message, MessageRole, MessageType};
+use praxis::{DBMessage, MessageRole, MessageType};
 use crate::{error::{ApiError, ApiResult}, state::AppState};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -57,14 +55,10 @@ pub async fn list_messages(
     Path(thread_id): Path<String>,
     Query(query): Query<ListMessagesQuery>,
 ) -> ApiResult<Json<ListMessagesResponse>> {
-    let thread_object_id = ObjectId::from_str(&thread_id)
-        .map_err(|_| ApiError::BadRequest("Invalid thread ID format".to_string()))?;
-    
     // Check if thread exists
     let thread = state
         .persist
-        .threads()
-        .get_thread(thread_object_id)
+        .get_thread(&thread_id)
         .await?;
     
     if thread.is_none() {
@@ -73,18 +67,27 @@ pub async fn list_messages(
     
     let limit = query.limit.min(100); // Cap at 100
     
-    let before_id = if let Some(before_str) = query.before {
-        Some(ObjectId::from_str(&before_str)
-            .map_err(|_| ApiError::BadRequest("Invalid message ID format".to_string()))?)
-    } else {
-        None
-    };
-    
-    let messages = state
+    // Get all messages for the thread (PersistenceClient doesn't have pagination yet)
+    // TODO: Add pagination support to PersistenceClient trait
+    let all_messages = state
         .persist
-        .messages()
-        .get_messages_paginated(thread_object_id, limit, before_id)
+        .get_messages(&thread_id)
         .await?;
+    
+    // Simple pagination: if before is specified, filter messages before that ID
+    let messages: Vec<DBMessage> = if let Some(before_str) = query.before {
+        let before_idx = all_messages.iter()
+            .position(|m| m.id == before_str)
+            .unwrap_or(all_messages.len());
+        all_messages.into_iter()
+            .take(before_idx)
+            .take(limit as usize)
+            .collect()
+    } else {
+        all_messages.into_iter()
+            .take(limit as usize)
+            .collect()
+    };
     
     let has_more = messages.len() as i64 == limit;
     let message_responses: Vec<MessageResponse> = messages
@@ -98,10 +101,10 @@ pub async fn list_messages(
     }))
 }
 
-fn message_to_response(message: Message) -> MessageResponse {
+fn message_to_response(message: DBMessage) -> MessageResponse {
     MessageResponse {
-        message_id: message.id.to_hex(),
-        thread_id: message.thread_id.to_hex(),
+        message_id: message.id,
+        thread_id: message.thread_id,
         role: message.role,
         message_type: message.message_type,
         content: message.content,

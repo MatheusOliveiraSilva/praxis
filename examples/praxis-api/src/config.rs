@@ -47,7 +47,7 @@ pub struct LlmConfig {
     pub max_tokens: usize,
 }
 
-impl From<LlmConfig> for praxis_graph::LLMConfig {
+impl From<LlmConfig> for praxis::LLMConfig {
     fn from(config: LlmConfig) -> Self {
         Self {
             model: config.model,

@@ -103,7 +103,7 @@ pub use praxis_mcp::{
 
 pub use praxis_persist::{
     PersistenceClient, EventAccumulator, StreamEventExtractor,
-    DBMessage, MessageRole, MessageType, Thread, ThreadSummary,
+    DBMessage, MessageRole, MessageType, Thread, ThreadMetadata, ThreadSummary, PersistError,
 };
 
 #[cfg(feature = "mongodb")]

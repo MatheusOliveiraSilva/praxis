@@ -13,9 +13,8 @@ pool_size = 10
 timeout_ms = 5000
 
 [llm]
-model = "gpt-5"
+model = "gpt-4o-mini"
 temperature = 0.7
-# max_tokens for context window management (not sent to OpenAI)
 max_tokens = 8000
 
 [mcp]

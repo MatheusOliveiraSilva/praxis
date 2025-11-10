@@ -46,7 +46,7 @@ pub async fn health_check(
 
 async fn check_mongodb(state: &AppState) -> ApiResult<()> {
     // Try to list threads (lightweight operation)
-    let _ = state.persist.threads().list_threads("_health_check", 1).await?;
+    let _ = state.persist.list_threads("_health_check", Some(1), None).await?;
     Ok(())
 }
 

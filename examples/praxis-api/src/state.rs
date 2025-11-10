@@ -1,9 +1,5 @@
 use std::sync::Arc;
-use praxis_llm::LLMClient;
-use praxis_mcp::MCPToolExecutor;
-use praxis_persist::PersistenceClient;
-use praxis_context::ContextStrategy;
-use praxis_graph::Graph;
+use praxis::{LLMClient, MCPToolExecutor, PersistenceClient, ContextStrategy, Graph};
 use crate::config::Config;
 
 /// Shared application state passed to all handlers
