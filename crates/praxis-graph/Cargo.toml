@@ -1,6 +1,6 @@
 [package]
 name = "praxis-graph"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 authors = ["Praxis Team"]
 license = "MIT"
@@ -13,10 +13,10 @@ categories = ["asynchronous", "development-tools"]
 readme = "README.md"
 
 [dependencies]
-praxis-llm = { version = "0.1.1", path = "../praxis-llm" }
-praxis-mcp = { version = "0.1.0", path = "../praxis-mcp" }
-praxis-persist = { version = "0.1.1", path = "../praxis-persist" }
-praxis-observability = { version = "0.1.0", path = "../praxis-observability", optional = true }
+praxis-llm = { version = "0.2.0", path = "../praxis-llm" }
+praxis-mcp = { version = "0.2.0", path = "../praxis-mcp" }
+praxis-persist = { version = "0.2.0", path = "../praxis-persist" }
+praxis-observability = { version = "0.2.0", path = "../praxis-observability", optional = true }
 tokio = { version = "1", features = ["full"] }
 anyhow = "1"
 async-trait = "0.1"

@@ -1,6 +1,6 @@
 [package]
 name = "praxis-observability"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Praxis Contributors"]
 description = "Observability and tracing abstraction for Praxis AI agents"
@@ -11,7 +11,7 @@ categories = ["development-tools::debugging"]
 
 [dependencies]
 # Internal dependencies
-praxis-llm = { path = "../praxis-llm" }
+praxis-llm = { version = "0.2.0", path = "../praxis-llm" }
 
 # Async runtime
 tokio = { version = "1.35", features = ["full"] }
