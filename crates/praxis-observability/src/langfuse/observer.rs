@@ -57,7 +57,7 @@ impl LangfuseObserver {
 
     /// Convert observation to Langfuse format for LLM nodes (Chain of Responsibility Pattern)
     /// 
-    /// Creates separate generation traces for each output (reasoning, message, tool_calls)
+    /// Creates a single generation trace for the Node with all outputs combined
     async fn trace_llm_generation(&self, observation: NodeObservation) -> Result<()> {
         let trace_id = self.get_or_create_trace_id(&observation.run_id);
 
@@ -80,109 +80,96 @@ impl LangfuseObserver {
                         serde_json::json!([])
                     });
                 
-                // Create a generation for each output
-                for (i, output) in outputs.iter().enumerate() {
-                    let generation_id = if outputs.len() == 1 {
-                        observation.span_id.clone()
-                    } else {
-                        format!("{}-gen-{}", observation.span_id, i)
-                    };
-                    
-                    let (generation_name, output_json, metadata) = match output {
+                // Build a single structured output combining all outputs
+                let mut output_structure = serde_json::Map::new();
+                let mut openai_ids = Vec::new();
+                let mut output_types = Vec::new();
+                
+                for output in outputs.iter() {
+                    match output {
                         NodeOutput::Reasoning { id, content } => {
-                            let mut metadata = observation.metadata.clone();
-                            metadata.insert("openai_id".to_string(), serde_json::json!(id));
-                            metadata.insert("output_type".to_string(), serde_json::json!("reasoning"));
-                            
-                            ("reasoning".to_string(), serde_json::json!({
-                                "reasoning": content
-                            }), metadata)
+                            output_structure.insert("reasoning".to_string(), serde_json::json!(content));
+                            openai_ids.push(id.clone());
+                            output_types.push("reasoning");
                         }
                         NodeOutput::Message { id, content } => {
-                            let mut metadata = observation.metadata.clone();
-                            metadata.insert("openai_id".to_string(), serde_json::json!(id));
-                            metadata.insert("output_type".to_string(), serde_json::json!("message"));
-                            
-                            ("message".to_string(), serde_json::json!({
-                                "content": content
-                            }), metadata)
+                            output_structure.insert("message".to_string(), serde_json::json!(content));
+                            openai_ids.push(id.clone());
+                            output_types.push("message");
                         }
                         NodeOutput::ToolCalls { calls } => {
-                            let mut metadata = observation.metadata.clone();
-                            metadata.insert("output_type".to_string(), serde_json::json!("tool_calls"));
-                            
-                            ("tool_calls".to_string(), serde_json::json!({
-                                "tool_calls": calls
-                            }), metadata)
+                            output_structure.insert("tool_calls".to_string(), serde_json::json!(calls));
+                            output_types.push("tool_calls");
                         }
-                    };
-                    
-                    tracing::info!(
-                        "Creating generation {} for {}: input_len={}, output_json={}",
-                        generation_id,
-                        generation_name,
-                        input_messages.len(),
-                        serde_json::to_string(&output_json).unwrap_or_default()
-                    );
-
-                    let generation_body = GenerationBody {
-                        id: generation_id.clone(),
-                        trace_id: trace_id.clone(),
-                        name: generation_name,
-                        start_time: observation.started_at.to_rfc3339(),
-                        end_time: Some(
-                            (observation.started_at
-                                + chrono::Duration::milliseconds(observation.duration_ms as i64))
-                            .to_rfc3339(),
-                        ),
-                        model: model.clone(),
-                        model_parameters: None,
-                        input: Some(input_json.clone()),
-                        output: Some(output_json),
-                        metadata: if metadata.is_empty() {
-                            None
-                        } else {
-                            Some(metadata)
-                        },
-                        level: Some("DEFAULT".to_string()),
-                        status_message: None,
-                        usage: if i == outputs.len() - 1 {
-                            // Only attach usage to the last generation to avoid duplication
-                            // Convert from praxis-llm TokenUsage format to Langfuse format
-                            usage.clone().map(|u| UsageInfo {
-                                prompt_tokens: Some(u.input_tokens),
-                                completion_tokens: Some(u.output_tokens),
-                                total_tokens: Some(u.total_tokens),
-                            })
-                        } else {
-                            None
-                        },
-                    };
-
-                    tracing::debug!(
-                        "Sending generation to Langfuse - input_messages_count: {}, has_output: {}",
-                        input_messages.len(),
-                        !input_messages.is_empty()
-                    );
-
-                    // Create batch ingestion event for this generation
-                    let now = chrono::Utc::now();
-                    let event = IngestionEvent {
-                        id: format!("{}-generation-event", generation_id),
-                        timestamp: now.to_rfc3339(),
-                        event_type: "generation-create".to_string(),
-                        body: serde_json::to_value(&generation_body)
-                            .context("Failed to serialize generation body")?,
-                    };
-
-                    let batch = IngestionBatch {
-                        batch: vec![event],
-                    };
-
-                    self.client.ingest_batch(batch).await?;
-                    
-                    tracing::info!("Sent generation {} to Langfuse", generation_id);
+                    }
                 }
+                
+                let output_json = serde_json::Value::Object(output_structure);
+                
+                // Build metadata with all OpenAI IDs and output types
+                let mut metadata = observation.metadata.clone();
+                if !openai_ids.is_empty() {
+                    metadata.insert("openai_ids".to_string(), serde_json::json!(openai_ids));
+                }
+                metadata.insert("output_types".to_string(), serde_json::json!(output_types));
+                
+                tracing::info!(
+                    "Creating single generation for llm_node: input_len={}, output_types={:?}",
+                    input_messages.len(),
+                    output_types
+                );
+
+                let generation_body = GenerationBody {
+                    id: observation.span_id.clone(),
+                    trace_id: trace_id.clone(),
+                    name: "llm_node".to_string(),
+                    start_time: observation.started_at.to_rfc3339(),
+                    end_time: Some(
+                        (observation.started_at
+                            + chrono::Duration::milliseconds(observation.duration_ms as i64))
+                        .to_rfc3339(),
+                    ),
+                    model: model.clone(),
+                    model_parameters: None,
+                    input: Some(input_json),
+                    output: Some(output_json),
+                    metadata: if metadata.is_empty() {
+                        None
+                    } else {
+                        Some(metadata)
+                    },
+                    level: Some("DEFAULT".to_string()),
+                    status_message: None,
+                    usage: usage.map(|u| UsageInfo {
+                        prompt_tokens: Some(u.input_tokens),
+                        completion_tokens: Some(u.output_tokens),
+                        total_tokens: Some(u.total_tokens),
+                    }),
+                };
+
+                tracing::debug!(
+                    "Sending generation to Langfuse - input_messages_count: {}, output_types: {:?}",
+                    input_messages.len(),
+                    output_types
+                );
+
+                // Create batch ingestion event for the single generation
+                let now = chrono::Utc::now();
+                let event = IngestionEvent {
+                    id: format!("{}-generation-event", observation.span_id),
+                    timestamp: now.to_rfc3339(),
+                    event_type: "generation-create".to_string(),
+                    body: serde_json::to_value(&generation_body)
+                        .context("Failed to serialize generation body")?,
+                };
+
+                let batch = IngestionBatch {
+                    batch: vec![event],
+                };
+
+                self.client.ingest_batch(batch).await?;
+                
+                tracing::info!("Sent generation {} to Langfuse", observation.span_id);
             }
             _ => {
                 anyhow::bail!("Expected LLM observation data, got Tool data");
