@@ -1,6 +1,6 @@
 [package]
 name = "praxis-mcp"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Praxis Team"]
 license = "MIT"
@@ -21,7 +21,7 @@ rmcp = { version = "0.8.0", features = [
     "client-side-sse",
     "reqwest",
 ] }
-praxis-llm = { version = "0.1.1", path = "../praxis-llm" }
+praxis-llm = { version = "0.2.0", path = "../praxis-llm" }
 tokio = { version = "1", features = ["full"] }
 anyhow = "1"
 async-trait = "0.1"

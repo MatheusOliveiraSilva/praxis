@@ -68,6 +68,7 @@ pub struct ChatOptions {
     pub max_tokens: Option<u32>,
     pub tools: Option<Vec<Tool>>,
     pub tool_choice: Option<ToolChoice>,
+    pub reasoning_effort: Option<String>,
 }
 
 impl ChatOptions {
@@ -92,6 +93,11 @@ impl ChatOptions {
     
     pub fn tool_choice(mut self, choice: ToolChoice) -> Self {
         self.tool_choice = Some(choice);
+        self
+    }
+    
+    pub fn reasoning_effort(mut self, effort: impl Into<String>) -> Self {
+        self.reasoning_effort = Some(effort.into());
         self
     }
 }

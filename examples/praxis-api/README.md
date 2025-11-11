@@ -266,6 +266,22 @@ curl -N -X POST http://localhost:8000/threads/507f1f77bcf86cd799439011/messages 
     "user_id": "user_123",
     "content": "What is 2+2?"
   }'
+
+# easy!
+THREAD_ID=$(curl -s -X POST http://localhost:8000/threads \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"test_user","metadata":{"tags":[]}}' | grep -o '"thread_id":"[^"]*"' | cut -d'"' -f4) && \
+echo "Thread criado: $THREAD_ID" && \
+curl -N -X POST http://localhost:8000/threads/$THREAD_ID/messages \
+  -H "Content-Type: application/json" \
+  -H "Accept: text/event-stream" \
+  -d '{
+    "user_id": "test_user",
+    "content": "Solve this problem: If a train travels 120 km in 2 hours, what is its average speed? And after that make a dynamic programming problem that can be solved in O(n) time and space complexity.",
+    "llm_config": {
+      "model": "gpt-5",
+      "reasoning_effort": "medium"    }
+  }'
 ```
 
 ## Configuration

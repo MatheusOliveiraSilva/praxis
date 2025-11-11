@@ -10,9 +10,17 @@ import TypingIndicator from './TypingIndicator'
 import { TrashIcon } from './icons/TrashIcon'
 import { SendIcon } from './icons/SendIcon'
 import { MessageSquareIcon } from './icons/MessageSquareIcon'
+import ModelSelector from './ModelSelector'
 
 const API_BASE = 'http://localhost:8000'
 const USER_ID = 'test_user'
+
+interface LLMConfig {
+  model: string
+  temperature: number
+  max_tokens: number
+  reasoning_effort?: string
+}
 
 interface ChatAreaProps {
   thread: Thread | null
@@ -26,6 +34,11 @@ interface ChatAreaProps {
  */
 export default function ChatArea({ thread, onThreadUpdate, onThreadCreated }: ChatAreaProps) {
   const [input, setInput] = useState('')
+  const [llmConfig, setLlmConfig] = useState<LLMConfig>({
+    model: 'gpt-4o-mini',
+    temperature: 0.7,
+    max_tokens: 8000
+  })
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   
@@ -62,7 +75,7 @@ export default function ChatArea({ thread, onThreadUpdate, onThreadCreated }: Ch
       textareaRef.current.style.height = 'auto'
     }
     
-    await sendMessage(message)
+    await sendMessage(message, llmConfig)
   }
   
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -169,7 +182,15 @@ export default function ChatArea({ thread, onThreadUpdate, onThreadCreated }: Ch
       </div>
 
       {/* Input Area */}
-      <div className="p-6 border-t border-praxis-border bg-praxis-bg-secondary">
+      <div className="p-6 border-t border-praxis-border bg-praxis-bg-secondary space-y-3">
+        {/* Model Selector */}
+        <ModelSelector 
+          value={llmConfig}
+          onChange={setLlmConfig}
+          disabled={chatState.isStreaming}
+        />
+        
+        {/* Message Input */}
         <form onSubmit={handleSend} className="flex gap-3 items-end">
           <textarea
             ref={textareaRef}

@@ -70,9 +70,12 @@ async fn main() -> anyhow::Result<()> {
     
     // Create context strategy
     tracing::info!("Initializing context strategy");
+    // Context strategy uses a default max_tokens for managing context window
+    // Actual max_tokens per request is sent via SendMessageRequest
+    const DEFAULT_CONTEXT_MAX_TOKENS: usize = 8000;
     let context_strategy: Arc<dyn praxis::ContextStrategy> = Arc::new(
         praxis::DefaultContextStrategy::new(
-            config.llm.max_tokens,
+            DEFAULT_CONTEXT_MAX_TOKENS,
             llm_client.clone(),
         )
     );
@@ -80,10 +83,64 @@ async fn main() -> anyhow::Result<()> {
     // Wrap mcp_executor in Arc for sharing
     let mcp_executor = Arc::new(mcp_executor);
     
-    // Create graph with persistence
+    // Initialize observer if observability is enabled
+    #[cfg(feature = "observability")]
+    let observer: Option<Arc<dyn praxis::Observer>> = if config.observability.enabled {
+        match config.observability.provider.as_str() {
+            "langfuse" => {
+                tracing::info!("Initializing Langfuse observer");
+                tracing::info!(
+                    "Langfuse configuration - host: {}, public_key_set: {}, secret_key_set: {}",
+                    config.observability.langfuse.host,
+                    !config.observability.langfuse.public_key.is_empty(),
+                    !config.observability.langfuse.secret_key.is_empty()
+                );
+                match praxis::LangfuseObserver::new(
+                    config.observability.langfuse.public_key.clone(),
+                    config.observability.langfuse.secret_key.clone(),
+                    config.observability.langfuse.host.clone(),
+                ) {
+                    Ok(obs) => {
+                        tracing::info!("Langfuse observer initialized successfully");
+                        Some(Arc::new(obs) as Arc<dyn praxis::Observer>)
+                    }
+                    Err(e) => {
+                        tracing::error!("Failed to initialize Langfuse observer: {}", e);
+                        None
+                    }
+                }
+            }
+            _ => {
+                tracing::warn!("Unknown observability provider: {}", config.observability.provider);
+                None
+            }
+        }
+    } else {
+        tracing::info!("Observability is disabled");
+        None
+    };
+    
+    // Create graph with persistence and observability
     tracing::info!("Initializing Graph orchestrator with persistence");
+    #[cfg(feature = "observability")]
+    let graph = {
+        let mut builder = praxis::Graph::builder()
+            .llm_client(llm_client.clone())
+            .reasoning_client(llm_client.clone() as Arc<dyn praxis::ReasoningClient>) // OpenAIClient implements both ChatClient and ReasoningClient
+            .mcp_executor(Arc::clone(&mcp_executor))
+            .with_persistence(persist_client.clone());
+        
+        if let Some(obs) = observer {
+            builder = builder.with_observer(obs);
+        }
+        
+        builder.build()?
+    };
+    
+    #[cfg(not(feature = "observability"))]
     let graph = praxis::Graph::builder()
         .llm_client(llm_client.clone())
+        .reasoning_client(llm_client.clone() as Arc<dyn praxis::ReasoningClient>) // OpenAIClient implements both ChatClient and ReasoningClient
         .mcp_executor(Arc::clone(&mcp_executor))
         .with_persistence(persist_client.clone())
         .build()?;

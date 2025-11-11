@@ -1,6 +1,6 @@
 [package]
 name = "praxis-llm"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 authors = ["Praxis Team"]
 license = "MIT"
@@ -22,6 +22,7 @@ async-trait = "0.1"
 futures = "0.3"
 async-stream = "0.3"
 chrono = { version = "0.4", features = ["serde"] }
+tracing = "0.1"
 
 [[example]]
 name = "01_chat"

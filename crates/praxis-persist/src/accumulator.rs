@@ -131,6 +131,7 @@ impl<E: StreamEventExtractor> EventAccumulator<E> {
                     tool_call_id: None,
                     tool_name: None,
                     arguments: None,
+                    reasoning_id: None,
                     created_at: chrono::Utc::now(),
                     duration_ms,
                 })
@@ -146,6 +147,7 @@ impl<E: StreamEventExtractor> EventAccumulator<E> {
                     tool_call_id: None,
                     tool_name: None,
                     arguments: None,
+                    reasoning_id: None,
                     created_at: chrono::Utc::now(),
                     duration_ms,
                 })
@@ -209,6 +211,7 @@ impl<E: StreamEventExtractor> EventAccumulator<E> {
                 tool_call_id: Some(tool_call.tool_call_id),
                 tool_name: Some(tool_call.tool_name),
                 arguments,
+                reasoning_id: None,
                 created_at: chrono::Utc::now(),
                 duration_ms: Some(duration_ms),
             })

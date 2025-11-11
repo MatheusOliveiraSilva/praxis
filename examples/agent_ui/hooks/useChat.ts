@@ -40,13 +40,25 @@ export function useChat({ thread, onThreadCreated, onThreadUpdate }: UseChatOpti
       const data = await response.json()
       
       // Convert DB messages to UI items
-      const items: ChatItem[] = (data.messages || []).map((msg: Message): UIMessage => ({
+      const items: ChatItem[] = (data.messages || []).map((msg: Message): UIMessage => {
+        // Determine message type based on role and message_type field
+        let type: 'user' | 'assistant' | 'reasoning' = 'assistant'
+        if (msg.role === 'user') {
+          type = 'user'
+        } else if (msg.message_type === 'reasoning') {
+          type = 'reasoning'
+        } else {
+          type = 'assistant'
+        }
+        
+        return {
         itemType: 'message',
         id: msg._id,
-        type: msg.role === 'user' ? 'user' as const : 'assistant' as const,
+          type,
         content: msg.content,
         timestamp: new Date(msg.created_at)
-      }))
+        }
+      })
       
       setChatState(prev => ({
         ...prev,
@@ -66,8 +78,15 @@ export function useChat({ thread, onThreadCreated, onThreadUpdate }: UseChatOpti
   /**
    * Send message and handle streaming response
    */
-  const sendMessage = useCallback(async (content: string) => {
+  const sendMessage = useCallback(async (content: string, llmConfig?: any) => {
     if (!content.trim() || chatState.isStreaming) return
+    
+    // Default LLM config
+    const defaultConfig = {
+      model: "gpt-4o-mini",
+      temperature: 0.7,
+      max_tokens: 8000
+    }
     
     // Create or get thread
     let activeThread = thread
@@ -128,7 +147,8 @@ export function useChat({ thread, onThreadCreated, onThreadUpdate }: UseChatOpti
           },
           body: JSON.stringify({
             user_id: USER_ID,
-            content
+            content,
+            llm_config: llmConfig || defaultConfig
           })
         }
       )
@@ -160,10 +180,15 @@ export function useChat({ thread, onThreadCreated, onThreadUpdate }: UseChatOpti
         // Process chunk and get state updates
         const updates = processor.processChunk(chunk, currentState)
         
-        // Apply updates sequentially
-        if (updates.length > 0) {
-          currentState = updates[updates.length - 1]
+        // Apply each update immediately for real-time display
+        for (const update of updates) {
+          currentState = update
           setChatState(currentState)
+          
+          // Small delay for smoother animation (optional)
+          if (updates.length > 1) {
+            await new Promise(resolve => setTimeout(resolve, 10))
+          }
         }
       }
     } catch (error) {

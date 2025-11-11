@@ -68,11 +68,26 @@ impl OpenAIClient {
         
         let obj = request.as_object_mut().unwrap();
         
+        // Check if it's an o1 or gpt-5 model (uses different parameter names)
+        let is_reasoning_model = model.starts_with("o1") || model.starts_with("gpt-5");
+        
         if let Some(temp) = options.temperature {
+            // o1 and gpt-5 models don't support temperature
+            if !is_reasoning_model {
             obj.insert("temperature".to_string(), serde_json::json!(temp));
+            }
         }
         if let Some(max_tokens) = options.max_tokens {
-            obj.insert("max_tokens".to_string(), serde_json::json!(max_tokens));
+            // o1 and gpt-5 use max_completion_tokens instead of max_tokens
+            let token_field = if is_reasoning_model {
+                "max_completion_tokens"
+            } else {
+                "max_tokens"
+            };
+            obj.insert(token_field.to_string(), serde_json::json!(max_tokens));
+        }
+        if let Some(ref reasoning_effort) = options.reasoning_effort {
+            obj.insert("reasoning_effort".to_string(), serde_json::json!(reasoning_effort));
         }
         if let Some(tools) = &options.tools {
             obj.insert("tools".to_string(), serde_json::to_value(tools)?);

@@ -14,6 +14,7 @@ pub struct DBMessage {
     pub tool_call_id: Option<String>,
     pub tool_name: Option<String>,
     pub arguments: Option<serde_json::Value>,
+    pub reasoning_id: Option<String>,
     pub created_at: DateTime<Utc>,
     pub duration_ms: Option<u64>,
 }
@@ -30,6 +31,7 @@ impl Default for DBMessage {
             tool_call_id: None,
             tool_name: None,
             arguments: None,
+            reasoning_id: None,
             created_at: Utc::now(),
             duration_ms: None,
         }

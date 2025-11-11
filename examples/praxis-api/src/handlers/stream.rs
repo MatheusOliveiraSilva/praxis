@@ -10,13 +10,37 @@ use std::sync::Arc;
 use chrono::Utc;
 
 use tokio_stream::wrappers::ReceiverStream;
-use praxis::{StreamEvent as GraphStreamEvent, GraphInput, Message as LLMMessage, Content, DBMessage, MessageRole, MessageType, PersistenceContext};
+use praxis::{StreamEvent as GraphStreamEvent, GraphInput, Message as LLMMessage, Content, DBMessage, MessageRole, MessageType, PersistenceContext, LLMConfig};
 use crate::{error::{ApiError, ApiResult}, state::AppState};
 
 #[derive(Debug, Deserialize)]
 pub struct SendMessageRequest {
     pub user_id: String,
     pub content: String,
+    pub llm_config: RequestLLMConfig,
+}
+
+/// LLM configuration sent per request
+#[derive(Debug, Clone, Deserialize)]
+pub struct RequestLLMConfig {
+    pub model: String,
+    
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reasoning_effort: Option<String>,
+    
+    #[serde(default = "default_temperature")]
+    pub temperature: f32,
+    
+    #[serde(default = "default_max_tokens")]
+    pub max_tokens: u32,
+}
+
+fn default_temperature() -> f32 {
+    0.7
+}
+
+fn default_max_tokens() -> u32 {
+    8000
 }
 
 /// Send a message and stream the response using Server-Sent Events
@@ -53,6 +77,7 @@ pub async fn send_message_stream(
         tool_call_id: None,
         tool_name: None,
         arguments: None,
+        reasoning_id: None,
         created_at: Utc::now(),
         duration_ms: None,
     };
@@ -77,11 +102,19 @@ pub async fn send_message_stream(
         name: None,
     });
     
-    // 5. Create GraphInput with all messages
+    // 5. Create GraphInput with dynamic LLM config from request
+    let llm_config = LLMConfig {
+        model: req.llm_config.model.clone(),
+        provider: praxis::Provider::OpenAI,
+        temperature: Some(req.llm_config.temperature),
+        max_tokens: Some(req.llm_config.max_tokens),
+        reasoning_effort: req.llm_config.reasoning_effort.clone(),
+    };
+    
     let graph_input = GraphInput::new(
         thread_id.clone(),
         messages,
-        state.config.llm.clone().into(),
+        llm_config,
     );
     
     // 6. Spawn Graph with PersistenceContext

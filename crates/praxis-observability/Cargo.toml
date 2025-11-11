@@ -1,0 +1,46 @@
+[package]
+name = "praxis-observability"
+version = "0.2.0"
+edition = "2021"
+authors = ["Praxis Contributors"]
+description = "Observability and tracing abstraction for Praxis AI agents"
+license = "MIT"
+repository = "https://github.com/your-org/praxis"
+keywords = ["ai", "agents", "observability", "tracing", "langfuse"]
+categories = ["development-tools::debugging"]
+
+[dependencies]
+# Internal dependencies
+praxis-llm = { version = "0.2.0", path = "../praxis-llm" }
+
+# Async runtime
+tokio = { version = "1.35", features = ["full"] }
+async-trait = "0.1"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# HTTP client
+reqwest = { version = "0.11", features = ["json", "rustls-tls"], default-features = false }
+
+# Utilities
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.6", features = ["v4", "serde"] }
+anyhow = "1.0"
+
+# Logging
+tracing = "0.1"
+
+[dev-dependencies]
+tokio-test = "0.4"
+mockito = "1.2"
+tracing-subscriber = "0.3"
+
+[features]
+default = ["langfuse"]
+langfuse = []
+
+[[example]]
+name = "simple_trace"
+path = "examples/simple_trace.rs"

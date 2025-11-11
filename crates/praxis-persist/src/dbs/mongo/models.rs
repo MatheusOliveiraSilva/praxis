@@ -23,6 +23,8 @@ pub struct MongoMessage {
     pub tool_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub arguments: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reasoning_id: Option<String>,
     pub created_at: DateTime<Utc>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub duration_ms: Option<u64>,
@@ -66,6 +68,7 @@ impl From<DBMessage> for MongoMessage {
             tool_call_id: msg.tool_call_id,
             tool_name: msg.tool_name,
             arguments: msg.arguments,
+            reasoning_id: msg.reasoning_id,
             created_at: msg.created_at,
             duration_ms: msg.duration_ms,
         }
@@ -85,6 +88,7 @@ impl From<MongoMessage> for DBMessage {
             tool_call_id: msg.tool_call_id,
             tool_name: msg.tool_name,
             arguments: msg.arguments,
+            reasoning_id: msg.reasoning_id,
             created_at: msg.created_at,
             duration_ms: msg.duration_ms,
         }

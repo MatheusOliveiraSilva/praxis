@@ -86,7 +86,7 @@ pub mod prelude;
 
 pub use praxis_graph::{
     Graph, GraphBuilder, GraphConfig, GraphInput, GraphState, LLMConfig, ContextPolicy,
-    StreamEvent, PersistenceConfig, PersistenceContext,
+    StreamEvent, PersistenceConfig, PersistenceContext, Provider, GraphOutput,
 };
 
 pub use praxis_llm::{
@@ -111,5 +111,11 @@ pub use praxis_persist::MongoPersistenceClient;
 
 pub use praxis_context::{
     ContextStrategy, ContextWindow, DefaultContextStrategy,
+};
+
+#[cfg(feature = "observability")]
+pub use praxis_observability::{
+    Observer, LangfuseObserver, NodeObservation, NodeObservationData,
+    LangfuseMessage, ToolCallInfo, ToolResultInfo, TokenUsage,
 };
 

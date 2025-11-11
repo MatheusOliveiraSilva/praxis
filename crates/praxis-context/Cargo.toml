@@ -1,6 +1,6 @@
 [package]
 name = "praxis-context"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Praxis Team"]
 license = "MIT"
@@ -13,8 +13,8 @@ categories = ["asynchronous", "development-tools"]
 readme = "README.md"
 
 [dependencies]
-praxis-llm = { version = "0.1.1", path = "../praxis-llm" }
-praxis-persist = { version = "0.1.1", path = "../praxis-persist" }
+praxis-llm = { version = "0.2.0", path = "../praxis-llm" }
+praxis-persist = { version = "0.2.0", path = "../praxis-persist" }
 
 async-trait = "0.1"
 anyhow = "1"

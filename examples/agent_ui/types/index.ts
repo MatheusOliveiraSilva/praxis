@@ -11,6 +11,7 @@ export interface Message {
   thread_id: string
   user_id: string
   role: 'user' | 'assistant'
+  message_type?: 'message' | 'reasoning' | 'tool_call' | 'tool_result'
   content: string
   created_at: string
 }
