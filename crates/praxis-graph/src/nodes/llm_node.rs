@@ -100,7 +100,7 @@ impl LLMNode {
         let mut options = ChatOptions::new()
             .tools(tools)
             .tool_choice(ToolChoice::auto());
-        
+
         if let Some(temp) = state.llm_config.temperature {
             options = options.temperature(temp);
         }
@@ -125,15 +125,15 @@ impl LLMNode {
         let mut reasoning_content = String::new();
         let mut message_content = String::new();
         let mut tool_call_buffers: std::collections::HashMap<u32, (Option<String>, Option<String>, String)> = std::collections::HashMap::new();
-        
+
         // Forward events and accumulate content separately
         while let Some(event_result) = stream.next().await {
             let llm_event = event_result?;
-            
+
             // Convert and forward to client
             let graph_event = Self::convert_event(llm_event.clone());
             event_tx.send(graph_event).await?;
-            
+
             // Accumulate based on event type (keep reasoning and message separate)
             match llm_event {
                 praxis_llm::StreamEvent::Reasoning { content } => {
@@ -143,22 +143,22 @@ impl LLMNode {
                     message_content.push_str(&content);
                 }
                 praxis_llm::StreamEvent::ToolCall { index, id, name, arguments } => {
-                    let entry = tool_call_buffers.entry(index).or_insert((None, None, String::new()));
-                    
-                    if let Some(id) = id {
-                        entry.0 = Some(id);
-                    }
-                    if let Some(name) = name {
-                        entry.1 = Some(name);
-                    }
-                    if let Some(args) = arguments {
-                        entry.2.push_str(&args);
-                    }
+                let entry = tool_call_buffers.entry(index).or_insert((None, None, String::new()));
+                
+                if let Some(id) = id {
+                    entry.0 = Some(id);
                 }
+                if let Some(name) = name {
+                    entry.1 = Some(name);
+                }
+                if let Some(args) = arguments {
+                    entry.2.push_str(&args);
+                }
+            }
                 _ => {}
             }
         }
-        
+
         // Build output items
         let mut outputs = Vec::new();
         
@@ -174,14 +174,14 @@ impl LLMNode {
         let tool_calls: Vec<praxis_llm::ToolCall> = tool_call_buffers
             .into_iter()
             .filter_map(|(_, (id, name, arguments))| {
-                if let (Some(id), Some(name)) = (id, name) {
+            if let (Some(id), Some(name)) = (id, name) {
                     Some(praxis_llm::ToolCall {
-                        id,
-                        tool_type: "function".to_string(),
-                        function: praxis_llm::types::FunctionCall {
-                            name,
-                            arguments,
-                        },
+                    id,
+                    tool_type: "function".to_string(),
+                    function: praxis_llm::types::FunctionCall {
+                        name,
+                        arguments,
+                    },
                     })
                 } else {
                     None
@@ -227,7 +227,7 @@ impl LLMNode {
                 }
             }
         }
-        
+
         // Add assistant message to state
         let content = if !combined_content.is_empty() {
             Some(praxis_llm::Content::Text(combined_content))
@@ -244,11 +244,11 @@ impl LLMNode {
         let assistant_message = Message::AI {
             content,
             tool_calls,
-            name: None,
+                name: None,
         };
-        
+
         state.add_message(assistant_message);
-        
+
         Ok(())
     }
 }

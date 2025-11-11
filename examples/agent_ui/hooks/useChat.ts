@@ -52,11 +52,11 @@ export function useChat({ thread, onThreadCreated, onThreadUpdate }: UseChatOpti
         }
         
         return {
-          itemType: 'message',
-          id: msg._id,
+        itemType: 'message',
+        id: msg._id,
           type,
-          content: msg.content,
-          timestamp: new Date(msg.created_at)
+        content: msg.content,
+        timestamp: new Date(msg.created_at)
         }
       })
       
