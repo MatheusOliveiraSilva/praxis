@@ -7,9 +7,12 @@ pub mod langfuse;
 // Re-export main types
 pub use observer::Observer;
 pub use types::{
-    NodeObservation, NodeObservationData, LangfuseMessage, TraceContext, 
-    ToolCallInfo, ToolResultInfo, TokenUsage,
+    NodeObservation, NodeObservationData, NodeOutput, LangfuseMessage, TraceContext, 
+    ToolCallInfo, ToolResultInfo,
 };
+
+// Re-export TokenUsage from praxis-llm to avoid duplication
+pub use praxis_llm::TokenUsage;
 
 #[cfg(feature = "langfuse")]
 pub use langfuse::observer::LangfuseObserver;
