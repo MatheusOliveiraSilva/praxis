@@ -244,6 +244,7 @@ impl Graph {
         state: &GraphState,
         node_type: NodeType,
         node_start: Instant,
+        #[allow(unused_variables)]
         node_duration: u64,
         messages_before: usize,
         persistence: &Option<Arc<PersistenceConfig>>,
@@ -259,22 +260,46 @@ impl Graph {
         };
 
         // Persistence: save messages
+        // For LLM nodes, use structured outputs if available; otherwise fallback to messages
         if let (Some(persist), Some(context)) = (persistence, ctx) {
-            for msg in new_messages {
-                let db_message = Self::convert_message_to_db(
-                    msg,
-                    &context.thread_id,
-                    &context.user_id,
-                    node_type,
-                );
-                
-                if let Some(db_msg) = db_message {
-                    let client = Arc::clone(&persist.client);
-                    tokio::spawn(async move {
-                        if let Err(e) = client.save_message(db_msg).await {
-                            tracing::error!("Failed to save message: {}", e);
+            if node_type == NodeType::LLM && state.last_outputs.is_some() {
+                // New approach: Save structured outputs (reasoning + message separately)
+                if let Some(outputs) = &state.last_outputs {
+                    for output in outputs {
+                        let db_message = Self::convert_output_to_db(
+                            output,
+                            &context.thread_id,
+                            &context.user_id,
+                        );
+                        
+                        if let Some(db_msg) = db_message {
+                            let client = Arc::clone(&persist.client);
+                            tokio::spawn(async move {
+                                if let Err(e) = client.save_message(db_msg).await {
+                                    tracing::error!("Failed to save output to database: {}", e);
+                                }
+                            });
                         }
-                    });
+                    }
+                }
+            } else {
+                // Fallback: Save messages directly (for Tool nodes or old LLM nodes)
+                for msg in new_messages {
+                    let db_message = Self::convert_message_to_db(
+                        msg,
+                        &context.thread_id,
+                        &context.user_id,
+                        node_type,
+                    );
+                    
+                    if let Some(db_msg) = db_message {
+                        let client = Arc::clone(&persist.client);
+                        tokio::spawn(async move {
+                            if let Err(e) = client.save_message(db_msg).await {
+                                tracing::error!("Failed to save message: {}", e);
+                            }
+                        });
+                    }
                 }
             }
         }
@@ -307,6 +332,75 @@ impl Graph {
         }
     }
 
+    /// Convert GraphOutput to DBMessage
+    fn convert_output_to_db(
+        output: &crate::types::GraphOutput,
+        thread_id: &str,
+        user_id: &str,
+    ) -> Option<praxis_persist::DBMessage> {
+        use crate::types::GraphOutput;
+        use praxis_persist::{MessageRole, MessageType};
+
+        match output {
+            GraphOutput::Reasoning { id, content } => {
+                Some(praxis_persist::DBMessage {
+                    id: uuid::Uuid::new_v4().to_string(),
+                    thread_id: thread_id.to_string(),
+                    user_id: user_id.to_string(),
+                    role: MessageRole::Assistant,
+                    message_type: MessageType::Reasoning,
+                    content: content.clone(),
+                    tool_call_id: None,
+                    tool_name: None,
+                    arguments: None,
+                    reasoning_id: Some(id.clone()),
+                    created_at: chrono::Utc::now(),
+                    duration_ms: None,
+                })
+            }
+            GraphOutput::Message { id, content, tool_calls } => {
+                if let Some(calls) = tool_calls {
+                    // Save first tool call (expand to handle all in production)
+                    if let Some(first_call) = calls.first() {
+                        Some(praxis_persist::DBMessage {
+                            id: uuid::Uuid::new_v4().to_string(),
+                            thread_id: thread_id.to_string(),
+                            user_id: user_id.to_string(),
+                            role: MessageRole::Assistant,
+                            message_type: MessageType::ToolCall,
+                            content: String::new(),
+                            tool_call_id: Some(first_call.id.clone()),
+                            tool_name: Some(first_call.function.name.clone()),
+                            arguments: serde_json::from_str(&first_call.function.arguments).ok(),
+                            reasoning_id: Some(id.clone()),
+                            created_at: chrono::Utc::now(),
+                            duration_ms: None,
+                        })
+                    } else {
+                        None
+                    }
+                } else if !content.is_empty() {
+                    Some(praxis_persist::DBMessage {
+                        id: uuid::Uuid::new_v4().to_string(),
+                        thread_id: thread_id.to_string(),
+                        user_id: user_id.to_string(),
+                        role: MessageRole::Assistant,
+                        message_type: MessageType::Message,
+                        content: content.clone(),
+                        tool_call_id: None,
+                        tool_name: None,
+                        arguments: None,
+                        reasoning_id: Some(id.clone()),
+                        created_at: chrono::Utc::now(),
+                        duration_ms: None,
+                    })
+                } else {
+                    None
+                }
+            }
+        }
+    }
+    
     /// Convert praxis-llm Message to praxis-persist DBMessage
     fn convert_message_to_db(
         msg: &praxis_llm::Message,
@@ -334,6 +428,7 @@ impl Graph {
                             tool_call_id: Some(first_call.id.clone()),
                             tool_name: Some(first_call.function.name.clone()),
                             arguments: serde_json::from_str(&first_call.function.arguments).ok(),
+                            reasoning_id: None,
                             created_at: chrono::Utc::now(),
                             duration_ms: None,
                         })
@@ -351,6 +446,7 @@ impl Graph {
                         tool_call_id: None,
                         tool_name: None,
                         arguments: None,
+                        reasoning_id: None,
                         created_at: chrono::Utc::now(),
                         duration_ms: None,
                     })
@@ -369,6 +465,7 @@ impl Graph {
                     tool_call_id: Some(tool_call_id.clone()),
                     tool_name: None,
                     arguments: None,
+                    reasoning_id: None,
                     created_at: chrono::Utc::now(),
                     duration_ms: None,
                 })
@@ -386,7 +483,8 @@ impl Graph {
         node_duration: u64,
         new_messages: &[praxis_llm::Message],
     ) -> Option<praxis_observability::NodeObservation> {
-        use praxis_observability::{NodeObservation, NodeObservationData, LangfuseMessage, ToolCallInfo, ToolResultInfo};
+        use praxis_observability::{NodeObservation, NodeObservationData, NodeOutput, LangfuseMessage, ToolCallInfo, ToolResultInfo};
+        use crate::types::GraphOutput;
 
         let span_id = uuid::Uuid::new_v4().to_string();
         let started_at = chrono::Utc::now() - chrono::Duration::milliseconds(node_duration as i64);
@@ -407,26 +505,52 @@ impl Graph {
                     .filter_map(Self::convert_to_langfuse_message)
                     .collect();
 
-                let output_message = new_messages
-                    .iter()
-                    .filter_map(Self::convert_to_langfuse_message)
-                    .last();
+                // Use structured outputs if available
+                let outputs = if let Some(ref last_outputs) = state.last_outputs {
+                    last_outputs.iter().map(|output| {
+                        match output {
+                            GraphOutput::Reasoning { id, content } => {
+                                NodeOutput::Reasoning {
+                                    id: id.clone(),
+                                    content: content.clone(),
+                                }
+                            }
+                            GraphOutput::Message { id, content, tool_calls } => {
+                                if tool_calls.is_some() {
+                                    NodeOutput::ToolCalls {
+                                        calls: tool_calls.as_ref().unwrap().iter().map(|call| {
+                                            ToolCallInfo {
+                                                id: call.id.clone(),
+                                                name: call.function.name.clone(),
+                                                arguments: serde_json::from_str(&call.function.arguments)
+                                                    .unwrap_or(serde_json::json!({})),
+                                            }
+                                        }).collect(),
+                                    }
+                                } else {
+                                    NodeOutput::Message {
+                                        id: id.clone(),
+                                        content: content.clone(),
+                                    }
+                                }
+                            }
+                        }
+                    }).collect()
+                } else {
+                    // Fallback: convert from new_messages
+                    vec![]
+                };
 
-                let output_message = output_message?;
+                if outputs.is_empty() {
+                    tracing::warn!("No outputs available for LLM observation");
+                    return None;
+                }
 
                 tracing::info!(
-                    "Created LLM observation: input_messages={}, output_present=true",
-                    input_messages.len()
+                    "Created LLM observation: input_messages={}, outputs={}",
+                    input_messages.len(),
+                    outputs.len()
                 );
-                
-                // Debug: log first input message to verify content
-                if let Some(first_msg) = input_messages.first() {
-                    tracing::info!(
-                        "First input message - role: {}, content_len: {}",
-                        first_msg.role,
-                        first_msg.content.len()
-                    );
-                }
 
                 Some(NodeObservation {
                     span_id,
@@ -437,7 +561,7 @@ impl Graph {
                     duration_ms: node_duration,
                     data: NodeObservationData::Llm {
                         input_messages,
-                        output_message,
+                        outputs,
                         model: state.llm_config.model.clone(),
                         usage: None,
                     },

@@ -1,15 +1,18 @@
 use crate::types::config::{LLMConfig, ContextPolicy};
+use crate::types::GraphOutput;
 use praxis_llm::{Message, ToolCall};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct GraphState {
     pub conversation_id: String,
     pub run_id: String,
     pub messages: Vec<Message>,
     pub llm_config: LLMConfig,
     pub variables: HashMap<String, serde_json::Value>,
+    #[allow(dead_code)]
+    pub last_outputs: Option<Vec<GraphOutput>>,
 }
 
 impl GraphState {
@@ -25,6 +28,7 @@ impl GraphState {
             messages,
             llm_config,
             variables: HashMap::new(),
+            last_outputs: None,
         }
     }
 
@@ -35,6 +39,7 @@ impl GraphState {
             messages: input.messages,
             llm_config: input.llm_config,
             variables: HashMap::new(),
+            last_outputs: None,
         }
     }
 

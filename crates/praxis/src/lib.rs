@@ -86,7 +86,7 @@ pub mod prelude;
 
 pub use praxis_graph::{
     Graph, GraphBuilder, GraphConfig, GraphInput, GraphState, LLMConfig, ContextPolicy,
-    StreamEvent, PersistenceConfig, PersistenceContext,
+    StreamEvent, PersistenceConfig, PersistenceContext, Provider, GraphOutput,
 };
 
 pub use praxis_llm::{
