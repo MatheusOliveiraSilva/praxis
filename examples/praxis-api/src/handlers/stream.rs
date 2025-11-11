@@ -77,6 +77,7 @@ pub async fn send_message_stream(
         tool_call_id: None,
         tool_name: None,
         arguments: None,
+        reasoning_id: None,
         created_at: Utc::now(),
         duration_ms: None,
     };
@@ -104,6 +105,7 @@ pub async fn send_message_stream(
     // 5. Create GraphInput with dynamic LLM config from request
     let llm_config = LLMConfig {
         model: req.llm_config.model.clone(),
+        provider: praxis::Provider::OpenAI,
         temperature: Some(req.llm_config.temperature),
         max_tokens: Some(req.llm_config.max_tokens),
         reasoning_effort: req.llm_config.reasoning_effort.clone(),
