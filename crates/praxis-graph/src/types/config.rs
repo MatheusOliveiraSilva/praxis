@@ -1,6 +1,20 @@
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum Provider {
+    OpenAI,
+    Azure,
+    Anthropic,
+}
+
+impl Default for Provider {
+    fn default() -> Self {
+        Provider::OpenAI
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GraphConfig {
     pub max_iterations: usize,
@@ -42,6 +56,8 @@ impl GraphConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LLMConfig {
     pub model: String,
+    #[serde(default)]
+    pub provider: Provider,
     pub temperature: Option<f32>,
     pub max_tokens: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -52,10 +68,16 @@ impl LLMConfig {
     pub fn new(model: impl Into<String>) -> Self {
         Self {
             model: model.into(),
+            provider: Provider::default(),
             temperature: None,
             max_tokens: None,
             reasoning_effort: None,
         }
+    }
+
+    pub fn with_provider(mut self, provider: Provider) -> Self {
+        self.provider = provider;
+        self
     }
 
     pub fn with_temperature(mut self, temp: f32) -> Self {
@@ -78,6 +100,7 @@ impl Default for LLMConfig {
     fn default() -> Self {
         Self {
             model: "gpt-4o".to_string(),
+            provider: Provider::default(),
             temperature: Some(1.0),
             max_tokens: Some(4096),
             reasoning_effort: None,
