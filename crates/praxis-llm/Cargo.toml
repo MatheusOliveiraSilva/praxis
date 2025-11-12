@@ -56,3 +56,7 @@ path = "examples/08_azure_reasoning.rs"
 name = "09_factory_pattern"
 path = "examples/09_factory_pattern.rs"
 
+[[example]]
+name = "10_azure_reasoning_streaming"
+path = "examples/10_azure_reasoning_streaming.rs"
+
