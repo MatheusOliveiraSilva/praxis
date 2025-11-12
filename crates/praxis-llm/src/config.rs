@@ -47,32 +47,21 @@ impl OpenAIConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AzureConfig {
     pub api_key: String,
-    pub resource_name: String,
-    pub deployment_name: String,
+    pub endpoint: String,
     pub api_version: String,
 }
 
 impl AzureConfig {
     pub fn new(
         api_key: impl Into<String>,
-        resource_name: impl Into<String>,
-        deployment_name: impl Into<String>,
+        endpoint: impl Into<String>,
         api_version: impl Into<String>,
     ) -> Self {
         Self {
             api_key: api_key.into(),
-            resource_name: resource_name.into(),
-            deployment_name: deployment_name.into(),
+            endpoint: endpoint.into(),
             api_version: api_version.into(),
         }
-    }
-
-    /// Get the base URL for Azure OpenAI
-    pub fn base_url(&self) -> String {
-        format!(
-            "https://{}.openai.azure.com/openai/deployments/{}",
-            self.resource_name, self.deployment_name
-        )
     }
 }
 
@@ -103,15 +92,13 @@ impl ProviderConfig {
     /// Create Azure OpenAI provider config
     pub fn azure_openai(
         api_key: impl Into<String>,
-        resource_name: impl Into<String>,
-        deployment_name: impl Into<String>,
+        endpoint: impl Into<String>,
         api_version: impl Into<String>,
     ) -> Self {
         Self {
             details: ProviderDetails::AzureOpenAI(AzureConfig::new(
                 api_key,
-                resource_name,
-                deployment_name,
+                endpoint,
                 api_version,
             )),
         }
@@ -140,8 +127,7 @@ impl ClientFactory {
             ProviderDetails::AzureOpenAI(azure_config) => {
                 let client = crate::azure_openai::AzureOpenAIClient::builder()
                     .api_key(azure_config.api_key)
-                    .resource_name(azure_config.resource_name)
-                    .deployment_name(azure_config.deployment_name)
+                    .endpoint(azure_config.endpoint)
                     .api_version(azure_config.api_version)
                     .build()?;
                 Ok(Arc::new(client))
@@ -161,8 +147,7 @@ impl ClientFactory {
             ProviderDetails::AzureOpenAI(azure_config) => {
                 let client = crate::azure_openai::AzureOpenAIClient::builder()
                     .api_key(azure_config.api_key)
-                    .resource_name(azure_config.resource_name)
-                    .deployment_name(azure_config.deployment_name)
+                    .endpoint(azure_config.endpoint)
                     .api_version(azure_config.api_version)
                     .build()?;
                 Ok(Arc::new(client))
@@ -182,8 +167,7 @@ impl ClientFactory {
             ProviderDetails::AzureOpenAI(azure_config) => {
                 let client = crate::azure_openai::AzureOpenAIClient::builder()
                     .api_key(azure_config.api_key)
-                    .resource_name(azure_config.resource_name)
-                    .deployment_name(azure_config.deployment_name)
+                    .endpoint(azure_config.endpoint)
                     .api_version(azure_config.api_version)
                     .build()?;
                 Ok(Arc::new(client))
@@ -206,23 +190,22 @@ mod tests {
     fn test_azure_config() {
         let config = ProviderConfig::azure_openai(
             "test-key",
-            "my-resource",
-            "gpt-4-deployment",
+            "https://my-resource.openai.azure.com/openai/deployments/gpt-4-deployment",
             "2024-02-15-preview",
         );
+
         assert_eq!(config.provider_type(), ProviderType::AzureOpenAI);
     }
 
     #[test]
-    fn test_azure_base_url() {
+    fn test_azure_endpoint() {
         let azure_config = AzureConfig::new(
             "test-key",
-            "my-resource",
-            "gpt-4-deployment",
+            "https://my-resource.openai.azure.com/openai/deployments/gpt-4-deployment",
             "2024-02-15-preview",
         );
         assert_eq!(
-            azure_config.base_url(),
+            azure_config.endpoint,
             "https://my-resource.openai.azure.com/openai/deployments/gpt-4-deployment"
         );
     }
@@ -231,8 +214,7 @@ mod tests {
     fn test_serde_roundtrip() {
         let config = ProviderConfig::azure_openai(
             "test-key",
-            "my-resource",
-            "gpt-4-deployment",
+            "https://my-resource.openai.azure.com/openai/deployments/gpt-4-deployment",
             "2024-02-15-preview",
         );
 

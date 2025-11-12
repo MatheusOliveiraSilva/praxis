@@ -211,8 +211,7 @@ impl AzureOpenAIClient {
 #[derive(Default)]
 pub struct AzureOpenAIClientBuilder {
     api_key: Option<String>,
-    resource_name: Option<String>,
-    deployment_name: Option<String>,
+    endpoint: Option<String>,
     api_version: Option<String>,
 }
 
@@ -222,13 +221,10 @@ impl AzureOpenAIClientBuilder {
         self
     }
     
-    pub fn resource_name(mut self, resource_name: impl Into<String>) -> Self {
-        self.resource_name = Some(resource_name.into());
-        self
-    }
-    
-    pub fn deployment_name(mut self, deployment_name: impl Into<String>) -> Self {
-        self.deployment_name = Some(deployment_name.into());
+    /// Set the Azure OpenAI endpoint
+    /// Example: "https://my-resource.openai.azure.com/openai/deployments/gpt-4-deployment"
+    pub fn endpoint(mut self, endpoint: impl Into<String>) -> Self {
+        self.endpoint = Some(endpoint.into());
         self
     }
     
@@ -239,9 +235,11 @@ impl AzureOpenAIClientBuilder {
     
     pub fn build(self) -> Result<AzureOpenAIClient> {
         let api_key = self.api_key.context("API key is required")?;
-        let resource_name = self.resource_name.context("Resource name is required")?;
-        let deployment_name = self.deployment_name.context("Deployment name is required")?;
+        let base_url = self.endpoint.context("Endpoint is required")?;
         let api_version = self.api_version.context("API version is required")?;
+        
+        // Extract resource_name and deployment_name from endpoint for storage
+        let (resource_name, deployment_name) = Self::parse_endpoint(&base_url)?;
         
         let mut headers = HeaderMap::new();
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
@@ -256,11 +254,6 @@ impl AzureOpenAIClientBuilder {
             .build()
             .context("Failed to create HTTP client")?;
         
-        let base_url = format!(
-            "https://{}.openai.azure.com/openai/deployments/{}",
-            resource_name, deployment_name
-        );
-        
         Ok(AzureOpenAIClient {
             http_client,
             resource_name,
@@ -268,6 +261,39 @@ impl AzureOpenAIClientBuilder {
             api_version,
             base_url,
         })
+    }
+    
+    /// Parse endpoint URL to extract resource and deployment names
+    fn parse_endpoint(endpoint: &str) -> Result<(String, String)> {
+        // Expected format: https://{resource}.openai.azure.com/openai/deployments/{deployment}
+        let url = endpoint.trim_end_matches('/');
+        
+        // Extract resource name from hostname
+        let resource_name = if let Some(start) = url.find("://") {
+            let after_protocol = &url[start + 3..];
+            if let Some(end) = after_protocol.find(".openai.azure.com") {
+                after_protocol[..end].to_string()
+            } else {
+                anyhow::bail!("Invalid Azure endpoint format: expected '.openai.azure.com' in URL");
+            }
+        } else {
+            anyhow::bail!("Invalid Azure endpoint format: missing protocol");
+        };
+        
+        // Extract deployment name from path
+        let deployment_name = if let Some(deployments_pos) = url.find("/deployments/") {
+            let after_deployments = &url[deployments_pos + 13..];
+            // Remove any trailing paths after deployment name
+            if let Some(slash_pos) = after_deployments.find('/') {
+                after_deployments[..slash_pos].to_string()
+            } else {
+                after_deployments.to_string()
+            }
+        } else {
+            anyhow::bail!("Invalid Azure endpoint format: missing '/deployments/' in path");
+        };
+        
+        Ok((resource_name, deployment_name))
     }
 }
 

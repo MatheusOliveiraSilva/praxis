@@ -6,22 +6,19 @@ use praxis_llm::{AzureOpenAIClient, ChatClient, ChatRequest, Message, StreamEven
 async fn main() -> Result<()> {
     // Load Azure OpenAI configuration from environment variables
     let api_key = std::env::var("AZURE_OPENAI_API_KEY")?;
-    let resource_name = std::env::var("AZURE_OPENAI_RESOURCE_NAME")?;
-    let deployment_name = std::env::var("AZURE_OPENAI_DEPLOYMENT_NAME")?;
+    let endpoint = std::env::var("AZURE_OPENAI_ENDPOINT")?;
     let api_version = std::env::var("AZURE_OPENAI_API_VERSION")
         .unwrap_or_else(|_| "2024-02-15-preview".to_string());
 
     println!("Azure OpenAI Streaming Chat Example");
     println!("====================================\n");
-    println!("Resource: {}", resource_name);
-    println!("Deployment: {}", deployment_name);
+    println!("Endpoint: {}", endpoint);
     println!("API Version: {}\n", api_version);
 
     // Create Azure OpenAI client using builder pattern
     let client = AzureOpenAIClient::builder()
         .api_key(api_key)
-        .resource_name(resource_name)
-        .deployment_name(deployment_name)
+        .endpoint(endpoint)
         .api_version(api_version)
         .build()?;
 

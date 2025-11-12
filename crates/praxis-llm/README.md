@@ -83,8 +83,7 @@ use praxis_llm::{AzureOpenAIClient, ChatClient, ChatRequest, Message};
 
 let client = AzureOpenAIClient::builder()
     .api_key(api_key)
-    .resource_name("my-resource")
-    .deployment_name("gpt-4-deployment")
+    .endpoint("https://my-resource.openai.azure.com/openai/deployments/gpt-4-deployment")
     .api_version("2024-02-15-preview")
     .build()?;
 
@@ -104,8 +103,7 @@ use praxis_llm::{ClientFactory, ProviderConfig};
 // Create client from config (useful for dynamic provider selection)
 let config = ProviderConfig::azure_openai(
     api_key,
-    "my-resource",
-    "gpt-4-deployment",
+    "https://my-resource.openai.azure.com/openai/deployments/gpt-4-deployment",
     "2024-02-15-preview"
 );
 
@@ -137,8 +135,8 @@ cargo run --example 01_chat
 
 # Azure OpenAI
 export AZURE_OPENAI_API_KEY=your-key
-export AZURE_OPENAI_RESOURCE_NAME=my-resource
-export AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4-deployment
+export AZURE_OPENAI_ENDPOINT=https://my-resource.openai.azure.com/openai/deployments/gpt-4-deployment
+export AZURE_OPENAI_API_VERSION=2024-02-15-preview  # Optional, defaults to 2024-02-15-preview
 cargo run --example 06_azure_chat
 ```
 
@@ -148,7 +146,7 @@ Azure OpenAI uses a different endpoint structure than OpenAI:
 
 - **URL Pattern**: `https://{resource}.openai.azure.com/openai/deployments/{deployment}/...`
 - **Authentication**: `api-key` header instead of `Authorization: Bearer`
-- **Model Selection**: Specified via deployment name in URL, not in request body
+- **Model Selection**: Specified via deployment name in the endpoint URL
 - **API Version**: Required as query parameter
 
 ### Environment Variables
@@ -157,19 +155,24 @@ For Azure OpenAI, set these environment variables:
 
 ```bash
 AZURE_OPENAI_API_KEY=your-azure-api-key
-AZURE_OPENAI_RESOURCE_NAME=your-resource-name
-AZURE_OPENAI_DEPLOYMENT_NAME=your-deployment-name
-AZURE_OPENAI_API_VERSION=2024-02-15-preview  # Optional, defaults to latest
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/openai/deployments/your-deployment
+AZURE_OPENAI_API_VERSION=2024-02-15-preview  # Optional, defaults to 2024-02-15-preview
 ```
 
-### Deployment Names
+### Endpoint Format
 
-Azure OpenAI requires you to create deployments of models in your resource. The deployment name is different from the model name:
+The Azure endpoint includes both the resource name and deployment name in a single URL:
 
-- **Model**: `gpt-4`, `gpt-4o`, `o1`, etc. (OpenAI model names)
-- **Deployment**: Your custom deployment name (e.g., `my-gpt4-deployment`)
+```
+https://{resource-name}.openai.azure.com/openai/deployments/{deployment-name}
+```
 
-The client uses the deployment name in the URL and the model name for internal logic (e.g., determining if it's a reasoning model).
+Example:
+```
+https://my-openai-resource.openai.azure.com/openai/deployments/gpt-4-deployment
+```
+
+The client automatically parses this endpoint to extract the resource and deployment names internally.
 
 ## License
 
