@@ -5,7 +5,6 @@ fn test_azure_client_builder_success() {
     let result = AzureOpenAIClient::builder()
         .api_key("test-key")
         .endpoint("https://test-resource.openai.azure.com")
-        .deployment_name("gpt-4-deployment")
         .api_version("2024-02-15-preview")
         .build();
 
@@ -16,7 +15,6 @@ fn test_azure_client_builder_success() {
 fn test_azure_client_builder_missing_api_key() {
     let result = AzureOpenAIClient::builder()
         .endpoint("https://test-resource.openai.azure.com")
-        .deployment_name("gpt-4-deployment")
         .api_version("2024-02-15-preview")
         .build();
 
@@ -29,7 +27,6 @@ fn test_azure_client_builder_missing_api_key() {
 fn test_azure_client_builder_missing_endpoint() {
     let result = AzureOpenAIClient::builder()
         .api_key("test-key")
-        .deployment_name("gpt-4-deployment")
         .api_version("2024-02-15-preview")
         .build();
 
@@ -38,25 +35,13 @@ fn test_azure_client_builder_missing_endpoint() {
     assert!(err_msg.contains("Endpoint"));
 }
 
-#[test]
-fn test_azure_client_builder_missing_deployment() {
-    let result = AzureOpenAIClient::builder()
-        .api_key("test-key")
-        .endpoint("https://test-resource.openai.azure.com")
-        .api_version("2024-02-15-preview")
-        .build();
-
-    assert!(result.is_err());
-    let err_msg = result.err().unwrap().to_string();
-    assert!(err_msg.contains("Deployment name"));
-}
+// Deployment name is now passed via the model parameter in requests, not during client construction
 
 #[test]
 fn test_azure_client_builder_missing_api_version() {
     let result = AzureOpenAIClient::builder()
         .api_key("test-key")
         .endpoint("https://test-resource.openai.azure.com")
-        .deployment_name("gpt-4-deployment")
         .build();
 
     assert!(result.is_err());
@@ -73,12 +58,11 @@ mod config_tests {
         let config = AzureConfig::new(
             "test-key",
             "https://my-resource.openai.azure.com",
-            "gpt-4-deployment",
             "2024-02-15-preview",
         );
 
         assert_eq!(config.endpoint, "https://my-resource.openai.azure.com");
-        assert_eq!(config.deployment_name, "gpt-4-deployment");
+        assert_eq!(config.api_version, "2024-02-15-preview");
     }
 
     #[test]
@@ -86,7 +70,6 @@ mod config_tests {
         let config = ProviderConfig::azure_openai(
             "test-key",
             "https://my-resource.openai.azure.com",
-            "gpt-4-deployment",
             "2024-02-15-preview",
         );
 
@@ -109,13 +92,12 @@ mod url_building_tests {
         let _client = AzureOpenAIClient::builder()
             .api_key("test-key")
             .endpoint("https://my-resource.openai.azure.com")
-            .deployment_name("gpt-4-deployment")
             .api_version("2024-02-15-preview")
             .build()
             .unwrap();
 
         // Test that the client builds successfully with correct structure
-        // The base URL should be properly formatted
+        // The deployment name will be provided per-request via the model parameter
         assert!(true);
     }
 }

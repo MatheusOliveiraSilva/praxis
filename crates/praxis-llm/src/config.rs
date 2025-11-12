@@ -48,7 +48,6 @@ impl OpenAIConfig {
 pub struct AzureConfig {
     pub api_key: String,
     pub endpoint: String,
-    pub deployment_name: String,
     pub api_version: String,
 }
 
@@ -56,13 +55,11 @@ impl AzureConfig {
     pub fn new(
         api_key: impl Into<String>,
         endpoint: impl Into<String>,
-        deployment_name: impl Into<String>,
         api_version: impl Into<String>,
     ) -> Self {
         Self {
             api_key: api_key.into(),
             endpoint: endpoint.into(),
-            deployment_name: deployment_name.into(),
             api_version: api_version.into(),
         }
     }
@@ -93,17 +90,27 @@ impl ProviderConfig {
     }
 
     /// Create Azure OpenAI provider config
+    /// 
+    /// # Arguments
+    /// * `api_key` - Azure OpenAI API key
+    /// * `endpoint` - Azure OpenAI endpoint (base URL), e.g. "https://my-resource.openai.azure.com"
+    /// * `api_version` - API version, e.g. "2024-02-15-preview"
+    /// 
+    /// # Note
+    /// The deployment name is passed dynamically via the `model` parameter in each request:
+    /// ```rust,ignore
+    /// let request = ChatRequest::new("my-gpt4-deployment", messages);
+    /// client.chat(request).await?;
+    /// ```
     pub fn azure_openai(
         api_key: impl Into<String>,
         endpoint: impl Into<String>,
-        deployment_name: impl Into<String>,
         api_version: impl Into<String>,
     ) -> Self {
         Self {
             details: ProviderDetails::AzureOpenAI(AzureConfig::new(
                 api_key,
                 endpoint,
-                deployment_name,
                 api_version,
             )),
         }
@@ -153,7 +160,6 @@ impl ClientFactory {
                 let client = crate::azure_openai::AzureOpenAIClient::builder()
                     .api_key(azure_config.api_key)
                     .endpoint(azure_config.endpoint)
-                    .deployment_name(azure_config.deployment_name)
                     .api_version(azure_config.api_version)
                     .build()?;
                 Ok(Arc::new(client))
@@ -174,7 +180,6 @@ impl ClientFactory {
                 let client = crate::azure_openai::AzureOpenAIClient::builder()
                     .api_key(azure_config.api_key)
                     .endpoint(azure_config.endpoint)
-                    .deployment_name(azure_config.deployment_name)
                     .api_version(azure_config.api_version)
                     .build()?;
                 Ok(Arc::new(client))
@@ -198,7 +203,6 @@ mod tests {
         let config = ProviderConfig::azure_openai(
             "test-key",
             "https://my-resource.openai.azure.com",
-            "gpt-4-deployment",
             "2024-02-15-preview",
         );
 
@@ -210,11 +214,10 @@ mod tests {
         let azure_config = AzureConfig::new(
             "test-key",
             "https://my-resource.openai.azure.com",
-            "gpt-4-deployment",
             "2024-02-15-preview",
         );
         assert_eq!(azure_config.endpoint, "https://my-resource.openai.azure.com");
-        assert_eq!(azure_config.deployment_name, "gpt-4-deployment");
+        assert_eq!(azure_config.api_version, "2024-02-15-preview");
     }
 
     #[test]
@@ -222,7 +225,6 @@ mod tests {
         let config = ProviderConfig::azure_openai(
             "test-key",
             "https://my-resource.openai.azure.com",
-            "gpt-4-deployment",
             "2024-02-15-preview",
         );
 

@@ -20,12 +20,11 @@ use std::pin::Pin;
 /// Azure OpenAI uses a different endpoint structure and authentication method than OpenAI:
 /// - URL: https://{resource}.openai.azure.com/openai/deployments/{deployment}/...
 /// - Auth header: api-key instead of Authorization: Bearer
-/// - Model is specified via deployment name in URL, not in request body
+/// - Deployment name comes from the model parameter in each request
 #[derive(Debug)]
 pub struct AzureOpenAIClient {
     http_client: reqwest::Client,
     endpoint: String,
-    deployment_name: String,
     api_version: String,
 }
 
@@ -196,10 +195,11 @@ impl AzureOpenAIClient {
     }
     
     /// Build the full URL for an Azure OpenAI endpoint
-    fn build_url(&self, path: &str) -> String {
+    /// The deployment_name comes from the model parameter in the request
+    fn build_url(&self, deployment_name: &str, path: &str) -> String {
         format!(
             "{}/openai/deployments/{}/{}?api-version={}",
-            self.endpoint, self.deployment_name, path, self.api_version
+            self.endpoint, deployment_name, path, self.api_version
         )
     }
 }
@@ -209,7 +209,6 @@ impl AzureOpenAIClient {
 pub struct AzureOpenAIClientBuilder {
     api_key: Option<String>,
     endpoint: Option<String>,
-    deployment_name: Option<String>,
     api_version: Option<String>,
 }
 
@@ -226,13 +225,6 @@ impl AzureOpenAIClientBuilder {
         self
     }
     
-    /// Set the deployment name
-    /// Example: "gpt-4-deployment"
-    pub fn deployment_name(mut self, deployment_name: impl Into<String>) -> Self {
-        self.deployment_name = Some(deployment_name.into());
-        self
-    }
-    
     pub fn api_version(mut self, api_version: impl Into<String>) -> Self {
         self.api_version = Some(api_version.into());
         self
@@ -241,7 +233,6 @@ impl AzureOpenAIClientBuilder {
     pub fn build(self) -> Result<AzureOpenAIClient> {
         let api_key = self.api_key.context("API key is required")?;
         let endpoint = self.endpoint.context("Endpoint is required")?;
-        let deployment_name = self.deployment_name.context("Deployment name is required")?;
         let api_version = self.api_version.context("API version is required")?;
         
         // Remove trailing slash from endpoint
@@ -263,7 +254,6 @@ impl AzureOpenAIClientBuilder {
         Ok(AzureOpenAIClient {
             http_client,
             endpoint,
-            deployment_name,
             api_version,
         })
     }
@@ -276,6 +266,8 @@ impl AzureOpenAIClientBuilder {
 #[async_trait]
 impl ChatClient for AzureOpenAIClient {
     async fn chat(&self, request: ChatRequest) -> Result<ChatResponse> {
+        let deployment_name = &request.model;
+        
         let payload = self.build_chat_request(
             &request.model,
             request.messages,
@@ -283,7 +275,7 @@ impl ChatClient for AzureOpenAIClient {
             false,
         )?;
         
-        let url = self.build_url("chat/completions");
+        let url = self.build_url(deployment_name, "chat/completions");
         
         let response = self
             .http_client
@@ -324,6 +316,8 @@ impl ChatClient for AzureOpenAIClient {
         &self,
         request: ChatRequest,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamEvent>> + Send>>> {
+        let deployment_name = &request.model;
+        
         let payload = self.build_chat_request(
             &request.model,
             request.messages,
@@ -331,7 +325,7 @@ impl ChatClient for AzureOpenAIClient {
             true,
         )?;
         
-        let url = self.build_url("chat/completions");
+        let url = self.build_url(deployment_name, "chat/completions");
         
         let response = self
             .http_client
@@ -354,6 +348,8 @@ impl ChatClient for AzureOpenAIClient {
 #[async_trait]
 impl ReasoningClient for AzureOpenAIClient {
     async fn reason(&self, request: ResponseRequest) -> Result<ResponseOutput> {
+        let deployment_name = &request.model;
+        
         let payload = self.build_response_request(
             &request.model,
             request.input,
@@ -362,7 +358,7 @@ impl ReasoningClient for AzureOpenAIClient {
             false,
         )?;
         
-        let url = self.build_url("responses");
+        let url = self.build_url(deployment_name, "responses");
         
         let response = self
             .http_client
@@ -404,6 +400,8 @@ impl ReasoningClient for AzureOpenAIClient {
         &self,
         request: ResponseRequest,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamEvent>> + Send>>> {
+        let deployment_name = &request.model;
+        
         let payload = self.build_response_request(
             &request.model,
             request.input,
@@ -412,7 +410,7 @@ impl ReasoningClient for AzureOpenAIClient {
             true,
         )?;
         
-        let url = self.build_url("responses");
+        let url = self.build_url(deployment_name, "responses");
         
         let response = self
             .http_client

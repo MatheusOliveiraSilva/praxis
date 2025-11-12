@@ -6,29 +6,30 @@ async fn main() -> Result<()> {
     // Load Azure OpenAI configuration from environment variables
     let api_key = std::env::var("AZURE_OPENAI_API_KEY")?;
     let endpoint = std::env::var("AZURE_OPENAI_ENDPOINT")?;
-    let deployment_name = std::env::var("AZURE_OPENAI_DEPLOYMENT_NAME")?;
     let api_version = std::env::var("AZURE_OPENAI_API_VERSION")
         .unwrap_or_else(|_| "2024-02-15-preview".to_string());
 
     println!("Azure OpenAI Chat Completion Example");
     println!("=====================================\n");
     println!("Endpoint: {}", endpoint);
-    println!("Deployment: {}", deployment_name);
     println!("API Version: {}\n", api_version);
 
     // Create Azure OpenAI client using builder pattern
     let client = AzureOpenAIClient::builder()
         .api_key(api_key)
         .endpoint(endpoint)
-        .deployment_name(deployment_name)
         .api_version(api_version)
         .build()?;
 
     // Create a simple chat request
+    // The deployment name is passed via the model parameter
+    let deployment_name = "gpt-4-deployment"; // Your Azure deployment name
     let request = ChatRequest::new(
-        "gpt-4", // Model name is used for internal logic, deployment is in URL
+        deployment_name,
         vec![Message::human("What is the capital of France?")],
     );
+    
+    println!("Using deployment: {}\n", deployment_name);
 
     println!("Sending request...\n");
 

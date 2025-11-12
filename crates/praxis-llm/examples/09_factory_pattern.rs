@@ -28,20 +28,20 @@ async fn main() -> Result<()> {
     
     let azure_key = std::env::var("AZURE_OPENAI_API_KEY");
     let azure_endpoint = std::env::var("AZURE_OPENAI_ENDPOINT");
-    let azure_deployment = std::env::var("AZURE_OPENAI_DEPLOYMENT_NAME");
     
-    if let (Ok(api_key), Ok(endpoint), Ok(deployment)) = (azure_key, azure_endpoint, azure_deployment) {
+    if let (Ok(api_key), Ok(endpoint)) = (azure_key, azure_endpoint) {
         
         let config = ProviderConfig::azure_openai(
             api_key,
             endpoint,
-            deployment,
             "2024-02-15-preview",
         );
         
         let client: Arc<dyn ChatClient> = ClientFactory::create_chat_client(config)?;
 
-        let request = ChatRequest::new("gpt-4", vec![Message::human("Say hello!")]);
+        // Deployment name is passed via model parameter
+        let deployment_name = "gpt-4-deployment"; // Your Azure deployment name
+        let request = ChatRequest::new(deployment_name, vec![Message::human("Say hello!")]);
         let response = client.chat(request).await?;
         println!("Response: {}\n", response.content.unwrap_or_default());
     } else {
@@ -57,22 +57,25 @@ async fn main() -> Result<()> {
     
     println!("Selected provider: {}", provider_type);
     
-    let config = match provider_type.as_str() {
+    let (config, model) = match provider_type.as_str() {
         "azure" | "azure_openai" => {
             let api_key = std::env::var("AZURE_OPENAI_API_KEY")?;
             let endpoint = std::env::var("AZURE_OPENAI_ENDPOINT")?;
-            let deployment = std::env::var("AZURE_OPENAI_DEPLOYMENT_NAME")?;
-            ProviderConfig::azure_openai(api_key, endpoint, deployment, "2024-02-15-preview")
+            let config = ProviderConfig::azure_openai(api_key, endpoint, "2024-02-15-preview");
+            // For Azure, model is the deployment name
+            (config, "gpt-4-deployment".to_string())
         }
         _ => {
             let api_key = std::env::var("OPENAI_API_KEY")?;
-            ProviderConfig::openai(api_key)
+            let config = ProviderConfig::openai(api_key);
+            // For OpenAI, model is the model name
+            (config, "gpt-4".to_string())
         }
     };
     
     let client = ClientFactory::create_client(config)?;
     
-    let request = ChatRequest::new("gpt-4", vec![Message::human("What is 2+2?")]);
+    let request = ChatRequest::new(model, vec![Message::human("What is 2+2?")]);
     let response = client.chat(request).await?;
     println!("Response: {}", response.content.unwrap_or_default());
 
