@@ -7,8 +7,8 @@ license = "MIT"
 repository = "https://github.com/matheussilva/praxis"
 homepage = "https://github.com/matheussilva/praxis"
 documentation = "https://docs.rs/praxis-llm"
-description = "Provider-agnostic LLM client with OpenAI/Azure support and streaming"
-keywords = ["ai", "llm", "openai", "streaming", "async"]
+description = "Provider-agnostic LLM client with OpenAI/Azure OpenAI support and streaming"
+keywords = ["ai", "llm", "openai", "azure", "streaming", "async"]
 categories = ["asynchronous", "api-bindings", "web-programming"]
 readme = "README.md"
 
@@ -39,4 +39,20 @@ path = "examples/03_reasoning.rs"
 [[example]]
 name = "04_reasoning_streaming"
 path = "examples/04_reasoning_streaming.rs"
+
+[[example]]
+name = "06_azure_chat"
+path = "examples/06_azure_chat.rs"
+
+[[example]]
+name = "07_azure_streaming"
+path = "examples/07_azure_streaming.rs"
+
+[[example]]
+name = "08_azure_reasoning"
+path = "examples/08_azure_reasoning.rs"
+
+[[example]]
+name = "09_factory_pattern"
+path = "examples/09_factory_pattern.rs"
 
