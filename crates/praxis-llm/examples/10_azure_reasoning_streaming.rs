@@ -3,9 +3,14 @@ use futures::StreamExt;
 use praxis_llm::{
     AzureOpenAIClient, Message, ReasoningClient, ReasoningConfig, ResponseRequest, StreamEvent,
 };
+use std::fs::File;
+use std::io::Write;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Create a file to save raw chunks
+    let mut raw_chunks_file = File::create("azure_streaming_raw_chunks.txt")?;
+    writeln!(raw_chunks_file, "=== Azure OpenAI Streaming Raw Chunks ===\n")?;
     // Load Azure OpenAI configuration from environment variables
     let api_key = std::env::var("AZURE_OPENAI_API_KEY")?;
     let endpoint = std::env::var("AZURE_OPENAI_ENDPOINT")?;
@@ -46,9 +51,18 @@ async fn main() -> Result<()> {
     let mut reasoning_content = String::new();
     let mut message_content = String::new();
     let mut token_count = 0;
+    let mut chunk_number = 0;
 
     // Process stream events
     while let Some(event) = stream.next().await {
+        chunk_number += 1;
+        
+        // Save raw chunk to file
+        writeln!(raw_chunks_file, "--- Chunk #{} ---", chunk_number)?;
+        writeln!(raw_chunks_file, "{:#?}", event)?;
+        writeln!(raw_chunks_file, "")?;
+        raw_chunks_file.flush()?;
+        
         match event? {
             StreamEvent::Reasoning { content } => {
                 // Reasoning tokens are streamed first (internal thought process)
@@ -88,6 +102,7 @@ async fn main() -> Result<()> {
                     println!("Finish reason: {}", reason);
                 }
                 println!("Total message tokens: {}", token_count);
+                println!("Total chunks received: {}", chunk_number);
             }
         }
     }
@@ -100,6 +115,13 @@ async fn main() -> Result<()> {
         println!("  Reasoning phase: {} chars of internal reasoning", reasoning_content.len());
         println!("  Response phase: {} tokens streamed", token_count);
     }
+    
+    // Close the raw chunks file
+    writeln!(raw_chunks_file, "\n=== End of stream - Total chunks: {} ===", chunk_number)?;
+    raw_chunks_file.flush()?;
+    
+    println!("\n📁 Raw chunks saved to: azure_streaming_raw_chunks.txt");
+    println!("   Use this file to debug and understand the streaming format!");
 
     Ok(())
 }

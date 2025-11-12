@@ -130,6 +130,7 @@ See the `examples/` directory for complete working examples:
 - `07_azure_streaming.rs` - Azure streaming chat
 - `08_azure_reasoning.rs` - Azure reasoning API
 - `09_factory_pattern.rs` - Factory pattern for provider selection
+- `10_azure_reasoning_streaming.rs` - Azure reasoning with streaming (combines both!)
 
 Run examples:
 ```bash
