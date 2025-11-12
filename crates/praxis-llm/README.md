@@ -91,3 +91,39 @@ cargo run --example 01_chat
 ## License
 
 MIT
+
+
+curl -X POST "${AZURE_OPENAI_ENDPOINT}/openai/deployments/gpt-4/chat/completions?api-version=${AZURE_OPENAI_API_VERSION}" \
+  -H "Content-Type: application/json" \
+  -H "api-key: ${AZURE_OPENAI_API_KEY}" \
+  -d '{
+    "messages": [
+      {"role": "system", "content": "You are a helpful assistant."},
+      {"role": "user", "content": "What is 2+2?"}
+    ],
+    "max_tokens": 100
+  }'
+
+  curl -X POST "${AZURE_OPENAI_ENDPOINT}/openai/deployments/gpt-4/chat/completions?api-version=${AZURE_OPENAI_API_VERSION}" \
+  -H "Content-Type: application/json" \
+  -H "api-key: ${AZURE_OPENAI_API_KEY}" \
+  -d '{
+    "messages": [
+      {"role": "system", "content": "You are a helpful assistant."},
+      {"role": "user", "content": "Write a short story about a robot."}
+    ],
+    "stream": true,
+    "max_tokens": 200
+  }'
+
+  curl -X POST "${AZURE_OPENAI_ENDPOINT}/openai/deployments/o1-preview/chat/completions?api-version=${AZURE_OPENAI_API_VERSION}" \
+  -H "Content-Type: application/json" \
+  -H "api-key: ${AZURE_OPENAI_API_KEY}" \
+  -d '{
+    "messages": [
+      {"role": "user", "content": "Solve this complex problem: If a train travels 120 km in 2 hours, what is its speed?"}
+    ],
+    "stream": true,
+    "reasoning_effort": "medium",
+    "max_completion_tokens": 500
+  }'
