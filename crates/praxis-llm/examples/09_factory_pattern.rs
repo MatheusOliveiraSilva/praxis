@@ -49,8 +49,8 @@ async fn main() -> Result<()> {
     }
 
     // Example 3: Dynamic provider selection based on config
-    println!("Example 3: Dynamic Provider Selection");
-    println!("--------------------------------------");
+    println!("Example 3: Dynamic Provider Selection (Chat Only)");
+    println!("--------------------------------------------------");
     
     // In a real application, this could come from a config file or database
     let provider_type = std::env::var("LLM_PROVIDER").unwrap_or_else(|_| "openai".to_string());
@@ -73,7 +73,9 @@ async fn main() -> Result<()> {
         }
     };
     
-    let client = ClientFactory::create_client(config)?;
+    // Note: Using create_chat_client for compatibility with both providers
+    // Azure OpenAI doesn't support reasoning models, so we use ChatClient
+    let client = ClientFactory::create_chat_client(config)?;
     
     let request = ChatRequest::new(model, vec![Message::human("What is 2+2?")]);
     let response = client.chat(request).await?;

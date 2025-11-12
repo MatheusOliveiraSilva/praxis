@@ -130,19 +130,20 @@ pub struct ClientFactory;
 
 impl ClientFactory {
     /// Create an LLM client from provider configuration
+    /// 
+    /// Note: This returns an LLMClient which requires both ChatClient and ReasoningClient traits.
+    /// Currently, only OpenAI provider supports both. For Azure OpenAI, use `create_chat_client` instead.
     pub fn create_client(config: ProviderConfig) -> Result<Arc<dyn crate::traits::LLMClient>> {
         match config.details {
             ProviderDetails::OpenAI(openai_config) => {
                 let client = crate::openai::OpenAIClient::new(openai_config.api_key)?;
                 Ok(Arc::new(client))
             }
-            ProviderDetails::AzureOpenAI(azure_config) => {
-                let client = crate::azure_openai::AzureOpenAIClient::builder()
-                    .api_key(azure_config.api_key)
-                    .endpoint(azure_config.endpoint)
-                    .api_version(azure_config.api_version)
-                    .build()?;
-                Ok(Arc::new(client))
+            ProviderDetails::AzureOpenAI(_) => {
+                anyhow::bail!(
+                    "Azure OpenAI does not support LLMClient (reasoning capabilities). \
+                    Use create_chat_client() instead for chat completions."
+                )
             }
         }
     }
@@ -168,6 +169,9 @@ impl ClientFactory {
     }
 
     /// Create a reasoning client from provider configuration
+    /// 
+    /// Note: Azure OpenAI does not currently support the Responses API (reasoning models).
+    /// This method will return an error for Azure OpenAI configurations.
     pub fn create_reasoning_client(
         config: ProviderConfig,
     ) -> Result<Arc<dyn crate::traits::ReasoningClient>> {
@@ -176,13 +180,12 @@ impl ClientFactory {
                 let client = crate::openai::OpenAIClient::new(openai_config.api_key)?;
                 Ok(Arc::new(client))
             }
-            ProviderDetails::AzureOpenAI(azure_config) => {
-                let client = crate::azure_openai::AzureOpenAIClient::builder()
-                    .api_key(azure_config.api_key)
-                    .endpoint(azure_config.endpoint)
-                    .api_version(azure_config.api_version)
-                    .build()?;
-                Ok(Arc::new(client))
+            ProviderDetails::AzureOpenAI(_) => {
+                anyhow::bail!(
+                    "Azure OpenAI does not support the Responses API (/responses endpoint) \
+                    which is required for reasoning models like o1-preview/o1-mini. \
+                    Use the OpenAI provider directly for reasoning capabilities."
+                )
             }
         }
     }

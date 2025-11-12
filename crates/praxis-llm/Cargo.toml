@@ -49,10 +49,6 @@ name = "07_azure_streaming"
 path = "examples/07_azure_streaming.rs"
 
 [[example]]
-name = "08_azure_reasoning"
-path = "examples/08_azure_reasoning.rs"
-
-[[example]]
 name = "09_factory_pattern"
 path = "examples/09_factory_pattern.rs"
 

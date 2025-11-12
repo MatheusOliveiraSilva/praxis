@@ -1,10 +1,8 @@
 // Azure OpenAI-specific client implementation
 
-use crate::openai::{ReasoningConfig, ResponsesResponse};
-use crate::streaming::{parse_chat_sse_stream, parse_response_sse_stream, StreamEvent};
+use crate::streaming::{parse_chat_sse_stream, StreamEvent};
 use crate::traits::{
-    ChatClient, ChatOptions, ChatRequest, ChatResponse, LLMClient, ReasoningClient,
-    ResponseOptions, ResponseOutput, ResponseRequest, TokenUsage,
+    ChatClient, ChatOptions, ChatRequest, ChatResponse, TokenUsage,
 };
 use crate::types::{Content, Message, ToolCall};
 use anyhow::{Context, Result};
@@ -80,40 +78,6 @@ impl AzureOpenAIClient {
         }
         if let Some(tool_choice) = &options.tool_choice {
             obj.insert("tool_choice".to_string(), serde_json::to_value(tool_choice)?);
-        }
-        
-        Ok(request)
-    }
-    
-    /// Build responses request payload
-    fn build_response_request(
-        &self,
-        _model: &str,
-        input: Vec<Message>,
-        reasoning: Option<&ReasoningConfig>,
-        options: &ResponseOptions,
-        stream: bool,
-    ) -> Result<Value> {
-        let azure_messages: Vec<Value> = input
-            .into_iter()
-            .map(|msg| self.convert_message(msg))
-            .collect::<Result<Vec<_>>>()?;
-        
-        let mut request = serde_json::json!({
-            "input": azure_messages,
-            "stream": stream,
-        });
-        
-        let obj = request.as_object_mut().unwrap();
-        
-        if let Some(reasoning) = reasoning {
-            obj.insert("reasoning".to_string(), serde_json::to_value(reasoning)?);
-        }
-        if let Some(temp) = options.temperature {
-            obj.insert("temperature".to_string(), serde_json::json!(temp));
-        }
-        if let Some(max_tokens) = options.max_output_tokens {
-            obj.insert("max_output_tokens".to_string(), serde_json::json!(max_tokens));
         }
         
         Ok(request)
@@ -345,93 +309,10 @@ impl ChatClient for AzureOpenAIClient {
     }
 }
 
-#[async_trait]
-impl ReasoningClient for AzureOpenAIClient {
-    async fn reason(&self, request: ResponseRequest) -> Result<ResponseOutput> {
-        let deployment_name = &request.model;
-        
-        let payload = self.build_response_request(
-            &request.model,
-            request.input,
-            request.reasoning.as_ref(),
-            &request.options,
-            false,
-        )?;
-        
-        let url = self.build_url(deployment_name, "responses");
-        
-        let response = self
-            .http_client
-            .post(&url)
-            .json(&payload)
-            .send()
-            .await
-            .context("Failed to send request")?;
-        
-        if !response.status().is_success() {
-            let status = response.status();
-            let error_text = response.text().await.unwrap_or_default();
-            anyhow::bail!("Azure OpenAI API error ({}): {}", status, error_text);
-        }
-        
-        let raw: ResponsesResponse = response
-            .json()
-            .await
-            .context("Failed to parse response")?;
-        
-        // Convert to provider-agnostic response
-        Ok(ResponseOutput {
-            reasoning: raw.reasoning_text(),
-            message: raw.message_text(),
-            usage: Some(TokenUsage {
-                input_tokens: raw.usage.input_tokens,
-                output_tokens: raw.usage.output_tokens,
-                total_tokens: raw.usage.total_tokens,
-                reasoning_tokens: raw.usage.output_tokens_details
-                    .as_ref()
-                    .and_then(|d| d.reasoning_tokens),
-            }),
-            status: Some(raw.status.clone()),
-            raw,
-        })
-    }
-    
-    async fn reason_stream(
-        &self,
-        request: ResponseRequest,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamEvent>> + Send>>> {
-        let deployment_name = &request.model;
-        
-        let payload = self.build_response_request(
-            &request.model,
-            request.input,
-            request.reasoning.as_ref(),
-            &request.options,
-            true,
-        )?;
-        
-        let url = self.build_url(deployment_name, "responses");
-        
-        let response = self
-            .http_client
-            .post(&url)
-            .json(&payload)
-            .send()
-            .await
-            .context("Failed to send request")?;
-        
-        if !response.status().is_success() {
-            let status = response.status();
-            let error_text = response.text().await.unwrap_or_default();
-            anyhow::bail!("Azure OpenAI API error ({}): {}", status, error_text);
-        }
-        
-        Ok(parse_response_sse_stream(response))
-    }
-}
-
-// Azure OpenAI supports both chat and reasoning
-impl LLMClient for AzureOpenAIClient {}
+// Note: Azure OpenAI does not currently support the Responses API (/responses endpoint)
+// which is used for reasoning models like o1-preview/o1-mini.
+// Therefore, AzureOpenAIClient only implements ChatClient, not ReasoningClient.
+// If you need reasoning capabilities, use the OpenAI client directly.
 
 // ============================================================================
 // AZURE-SPECIFIC RESPONSE TYPES (for Chat Completions)
