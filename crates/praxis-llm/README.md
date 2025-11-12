@@ -83,11 +83,12 @@ use praxis_llm::{AzureOpenAIClient, ChatClient, ChatRequest, Message};
 
 let client = AzureOpenAIClient::builder()
     .api_key(api_key)
-    .endpoint("https://my-resource.openai.azure.com/openai/deployments/gpt-4-deployment")
+    .endpoint("https://my-resource.openai.azure.com")
     .api_version("2024-02-15-preview")
     .build()?;
 
-let request = ChatRequest::new("gpt-4", vec![
+// Deployment name is passed via model parameter
+let request = ChatRequest::new("gpt-5", vec![
     Message::human("What is the capital of France?")
 ]);
 
@@ -103,11 +104,14 @@ use praxis_llm::{ClientFactory, ProviderConfig};
 // Create client from config (useful for dynamic provider selection)
 let config = ProviderConfig::azure_openai(
     api_key,
-    "https://my-resource.openai.azure.com/openai/deployments/gpt-4-deployment",
+    "https://my-resource.openai.azure.com",
     "2024-02-15-preview"
 );
 
 let client = ClientFactory::create_client(config)?;
+
+// For Azure, pass deployment name as model parameter
+let request = ChatRequest::new("gpt-5", messages);
 let response = client.chat(request).await?;
 ```
 
@@ -118,16 +122,14 @@ See the `examples/` directory for complete working examples:
 **OpenAI:**
 - `01_chat.rs` - Basic chat completion
 - `02_chat_streaming.rs` - Streaming chat
-- `03_reasoning.rs` - Responses API with reasoning (o1 models)
+- `03_reasoning.rs` - Responses API with reasoning
 - `04_reasoning_streaming.rs` - Streaming with reasoning
-- `05_tool_use.rs` - Function calling and tools
 
 **Azure OpenAI:**
 - `06_azure_chat.rs` - Basic Azure chat completion
 - `07_azure_streaming.rs` - Azure streaming chat
+- `08_azure_reasoning.rs` - Azure reasoning API
 - `09_factory_pattern.rs` - Factory pattern for provider selection
-
-**Note:** Azure OpenAI currently does not support the Responses API (reasoning models like o1-preview/o1-mini). For reasoning capabilities, use the OpenAI provider directly.
 
 Run examples:
 ```bash
@@ -135,7 +137,7 @@ Run examples:
 export OPENAI_API_KEY=your-key
 cargo run --example 01_chat
 
-# Azure OpenAI (Chat Completions only)
+# Azure OpenAI
 export AZURE_OPENAI_API_KEY=your-key
 export AZURE_OPENAI_ENDPOINT=https://my-resource.openai.azure.com
 export AZURE_OPENAI_API_VERSION=2024-02-15-preview  # Optional
@@ -144,16 +146,12 @@ cargo run --example 06_azure_chat
 
 ## Azure OpenAI Configuration
 
-Azure OpenAI uses a different endpoint structure than OpenAI and has some limitations:
+Azure OpenAI uses a different endpoint structure than OpenAI:
 
 - **URL Pattern**: `https://{resource}.openai.azure.com/openai/deployments/{deployment}/...`
 - **Authentication**: `api-key` header instead of `Authorization: Bearer`
 - **Model Selection**: Specified via deployment name (passed as model parameter in requests)
 - **API Version**: Required as query parameter
-- **⚠️ Limitations**: 
-  - Does not support the Responses API (`/responses` endpoint)
-  - Reasoning models (o1-preview, o1-mini) are not available
-  - Only Chat Completions API is supported
 
 ### Environment Variables
 
@@ -193,8 +191,8 @@ let client = AzureOpenAIClient::builder()
     .build()?;
 
 // Use different deployments for different models
-let gpt4_request = ChatRequest::new("gpt-4-deployment", messages);
-let gpt35_request = ChatRequest::new("gpt-35-turbo-deployment", messages);
+let gpt5_request = ChatRequest::new("gpt-5", messages);
+let gpt4_request = ChatRequest::new("gpt-4", messages);
 ```
 
 ## License

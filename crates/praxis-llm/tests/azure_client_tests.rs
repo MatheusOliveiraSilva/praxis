@@ -66,20 +66,19 @@ mod config_tests {
     }
 
     #[test]
+    fn test_provider_config_openai() {
+        let config = ProviderConfig::openai("test-key");
+        assert_eq!(config.provider_type(), ProviderType::OpenAI);
+    }
+
+    #[test]
     fn test_provider_config_azure() {
         let config = ProviderConfig::azure_openai(
             "test-key",
             "https://my-resource.openai.azure.com",
             "2024-02-15-preview",
         );
-
         assert_eq!(config.provider_type(), ProviderType::AzureOpenAI);
-    }
-
-    #[test]
-    fn test_provider_config_openai() {
-        let config = ProviderConfig::openai("test-key");
-        assert_eq!(config.provider_type(), ProviderType::OpenAI);
     }
 }
 
@@ -104,4 +103,3 @@ mod url_building_tests {
 
 // Integration tests would require actual Azure OpenAI credentials
 // These are just unit tests for the builder pattern and configuration
-

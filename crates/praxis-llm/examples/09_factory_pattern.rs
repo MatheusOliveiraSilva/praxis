@@ -40,7 +40,7 @@ async fn main() -> Result<()> {
         let client: Arc<dyn ChatClient> = ClientFactory::create_chat_client(config)?;
 
         // Deployment name is passed via model parameter
-        let deployment_name = "gpt-4-deployment"; // Your Azure deployment name
+        let deployment_name = "gpt-5"; // Your Azure deployment name
         let request = ChatRequest::new(deployment_name, vec![Message::human("Say hello!")]);
         let response = client.chat(request).await?;
         println!("Response: {}\n", response.content.unwrap_or_default());
@@ -49,8 +49,8 @@ async fn main() -> Result<()> {
     }
 
     // Example 3: Dynamic provider selection based on config
-    println!("Example 3: Dynamic Provider Selection (Chat Only)");
-    println!("--------------------------------------------------");
+    println!("Example 3: Dynamic Provider Selection");
+    println!("--------------------------------------");
     
     // In a real application, this could come from a config file or database
     let provider_type = std::env::var("LLM_PROVIDER").unwrap_or_else(|_| "openai".to_string());
@@ -63,7 +63,7 @@ async fn main() -> Result<()> {
             let endpoint = std::env::var("AZURE_OPENAI_ENDPOINT")?;
             let config = ProviderConfig::azure_openai(api_key, endpoint, "2024-02-15-preview");
             // For Azure, model is the deployment name
-            (config, "gpt-4-deployment".to_string())
+            (config, "gpt-5".to_string())
         }
         _ => {
             let api_key = std::env::var("OPENAI_API_KEY")?;
@@ -73,9 +73,7 @@ async fn main() -> Result<()> {
         }
     };
     
-    // Note: Using create_chat_client for compatibility with both providers
-    // Azure OpenAI doesn't support reasoning models, so we use ChatClient
-    let client = ClientFactory::create_chat_client(config)?;
+    let client = ClientFactory::create_client(config)?;
     
     let request = ChatRequest::new(model, vec![Message::human("What is 2+2?")]);
     let response = client.chat(request).await?;

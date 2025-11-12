@@ -24,7 +24,7 @@ async fn main() -> Result<()> {
 
     // Create a chat request for streaming
     // The deployment name is passed via the model parameter
-    let deployment_name = "gpt-4-deployment"; // Your Azure deployment name
+    let deployment_name = "gpt-5"; // Your Azure deployment name
     let request = ChatRequest::new(
         deployment_name,
         vec![Message::human("Write a short poem about artificial intelligence in exactly 4 lines.")],
