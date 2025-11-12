@@ -24,12 +24,9 @@ use std::pin::Pin;
 #[derive(Debug)]
 pub struct AzureOpenAIClient {
     http_client: reqwest::Client,
-    #[allow(dead_code)]
-    resource_name: String,
-    #[allow(dead_code)]
+    endpoint: String,
     deployment_name: String,
     api_version: String,
-    base_url: String,
 }
 
 impl AzureOpenAIClient {
@@ -199,10 +196,10 @@ impl AzureOpenAIClient {
     }
     
     /// Build the full URL for an Azure OpenAI endpoint
-    fn build_url(&self, endpoint: &str) -> String {
+    fn build_url(&self, path: &str) -> String {
         format!(
-            "{}/{}?api-version={}",
-            self.base_url, endpoint, self.api_version
+            "{}/openai/deployments/{}/{}?api-version={}",
+            self.endpoint, self.deployment_name, path, self.api_version
         )
     }
 }
@@ -212,6 +209,7 @@ impl AzureOpenAIClient {
 pub struct AzureOpenAIClientBuilder {
     api_key: Option<String>,
     endpoint: Option<String>,
+    deployment_name: Option<String>,
     api_version: Option<String>,
 }
 
@@ -221,10 +219,17 @@ impl AzureOpenAIClientBuilder {
         self
     }
     
-    /// Set the Azure OpenAI endpoint
-    /// Example: "https://my-resource.openai.azure.com/openai/deployments/gpt-4-deployment"
+    /// Set the Azure OpenAI endpoint (base URL)
+    /// Example: "https://my-resource.openai.azure.com"
     pub fn endpoint(mut self, endpoint: impl Into<String>) -> Self {
         self.endpoint = Some(endpoint.into());
+        self
+    }
+    
+    /// Set the deployment name
+    /// Example: "gpt-4-deployment"
+    pub fn deployment_name(mut self, deployment_name: impl Into<String>) -> Self {
+        self.deployment_name = Some(deployment_name.into());
         self
     }
     
@@ -235,11 +240,12 @@ impl AzureOpenAIClientBuilder {
     
     pub fn build(self) -> Result<AzureOpenAIClient> {
         let api_key = self.api_key.context("API key is required")?;
-        let base_url = self.endpoint.context("Endpoint is required")?;
+        let endpoint = self.endpoint.context("Endpoint is required")?;
+        let deployment_name = self.deployment_name.context("Deployment name is required")?;
         let api_version = self.api_version.context("API version is required")?;
         
-        // Extract resource_name and deployment_name from endpoint for storage
-        let (resource_name, deployment_name) = Self::parse_endpoint(&base_url)?;
+        // Remove trailing slash from endpoint
+        let endpoint = endpoint.trim_end_matches('/').to_string();
         
         let mut headers = HeaderMap::new();
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
@@ -256,44 +262,10 @@ impl AzureOpenAIClientBuilder {
         
         Ok(AzureOpenAIClient {
             http_client,
-            resource_name,
+            endpoint,
             deployment_name,
             api_version,
-            base_url,
         })
-    }
-    
-    /// Parse endpoint URL to extract resource and deployment names
-    fn parse_endpoint(endpoint: &str) -> Result<(String, String)> {
-        // Expected format: https://{resource}.openai.azure.com/openai/deployments/{deployment}
-        let url = endpoint.trim_end_matches('/');
-        
-        // Extract resource name from hostname
-        let resource_name = if let Some(start) = url.find("://") {
-            let after_protocol = &url[start + 3..];
-            if let Some(end) = after_protocol.find(".openai.azure.com") {
-                after_protocol[..end].to_string()
-            } else {
-                anyhow::bail!("Invalid Azure endpoint format: expected '.openai.azure.com' in URL");
-            }
-        } else {
-            anyhow::bail!("Invalid Azure endpoint format: missing protocol");
-        };
-        
-        // Extract deployment name from path
-        let deployment_name = if let Some(deployments_pos) = url.find("/deployments/") {
-            let after_deployments = &url[deployments_pos + 13..];
-            // Remove any trailing paths after deployment name
-            if let Some(slash_pos) = after_deployments.find('/') {
-                after_deployments[..slash_pos].to_string()
-            } else {
-                after_deployments.to_string()
-            }
-        } else {
-            anyhow::bail!("Invalid Azure endpoint format: missing '/deployments/' in path");
-        };
-        
-        Ok((resource_name, deployment_name))
     }
 }
 

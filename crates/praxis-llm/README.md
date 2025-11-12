@@ -83,7 +83,8 @@ use praxis_llm::{AzureOpenAIClient, ChatClient, ChatRequest, Message};
 
 let client = AzureOpenAIClient::builder()
     .api_key(api_key)
-    .endpoint("https://my-resource.openai.azure.com/openai/deployments/gpt-4-deployment")
+    .endpoint("https://my-resource.openai.azure.com")
+    .deployment_name("gpt-4-deployment")
     .api_version("2024-02-15-preview")
     .build()?;
 
@@ -103,7 +104,8 @@ use praxis_llm::{ClientFactory, ProviderConfig};
 // Create client from config (useful for dynamic provider selection)
 let config = ProviderConfig::azure_openai(
     api_key,
-    "https://my-resource.openai.azure.com/openai/deployments/gpt-4-deployment",
+    "https://my-resource.openai.azure.com",
+    "gpt-4-deployment",
     "2024-02-15-preview"
 );
 
@@ -135,7 +137,8 @@ cargo run --example 01_chat
 
 # Azure OpenAI
 export AZURE_OPENAI_API_KEY=your-key
-export AZURE_OPENAI_ENDPOINT=https://my-resource.openai.azure.com/openai/deployments/gpt-4-deployment
+export AZURE_OPENAI_ENDPOINT=https://my-resource.openai.azure.com
+export AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4-deployment
 export AZURE_OPENAI_API_VERSION=2024-02-15-preview  # Optional, defaults to 2024-02-15-preview
 cargo run --example 06_azure_chat
 ```
@@ -155,24 +158,28 @@ For Azure OpenAI, set these environment variables:
 
 ```bash
 AZURE_OPENAI_API_KEY=your-azure-api-key
-AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/openai/deployments/your-deployment
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com
+AZURE_OPENAI_DEPLOYMENT_NAME=your-deployment-name
 AZURE_OPENAI_API_VERSION=2024-02-15-preview  # Optional, defaults to 2024-02-15-preview
 ```
 
 ### Endpoint Format
 
-The Azure endpoint includes both the resource name and deployment name in a single URL:
+The Azure endpoint is the base URL of your Azure OpenAI resource:
 
 ```
-https://{resource-name}.openai.azure.com/openai/deployments/{deployment-name}
+https://{resource-name}.openai.azure.com
 ```
 
 Example:
 ```
-https://my-openai-resource.openai.azure.com/openai/deployments/gpt-4-deployment
+https://my-openai-resource.openai.azure.com
 ```
 
-The client automatically parses this endpoint to extract the resource and deployment names internally.
+The deployment name is specified separately, and the client constructs the full URL internally:
+```
+https://{resource}.openai.azure.com/openai/deployments/{deployment}/chat/completions?api-version={version}
+```
 
 ## License
 

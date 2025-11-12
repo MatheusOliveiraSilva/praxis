@@ -8,12 +8,14 @@ async fn main() -> Result<()> {
     // Load Azure OpenAI configuration from environment variables
     let api_key = std::env::var("AZURE_OPENAI_API_KEY")?;
     let endpoint = std::env::var("AZURE_OPENAI_ENDPOINT")?;
+    let deployment_name = std::env::var("AZURE_OPENAI_DEPLOYMENT_NAME")?;
     let api_version = std::env::var("AZURE_OPENAI_API_VERSION")
         .unwrap_or_else(|_| "2024-02-15-preview".to_string());
 
     println!("Azure OpenAI Reasoning Example");
     println!("===============================\n");
     println!("Endpoint: {}", endpoint);
+    println!("Deployment: {}", deployment_name);
     println!("API Version: {}\n", api_version);
     println!("Note: This requires a deployment with o1 or gpt-5 model support\n");
 
@@ -21,6 +23,7 @@ async fn main() -> Result<()> {
     let client = AzureOpenAIClient::builder()
         .api_key(api_key)
         .endpoint(endpoint)
+        .deployment_name(deployment_name)
         .api_version(api_version)
         .build()?;
 

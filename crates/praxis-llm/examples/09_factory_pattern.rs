@@ -28,12 +28,14 @@ async fn main() -> Result<()> {
     
     let azure_key = std::env::var("AZURE_OPENAI_API_KEY");
     let azure_endpoint = std::env::var("AZURE_OPENAI_ENDPOINT");
+    let azure_deployment = std::env::var("AZURE_OPENAI_DEPLOYMENT_NAME");
     
-    if let (Ok(api_key), Ok(endpoint)) = (azure_key, azure_endpoint) {
+    if let (Ok(api_key), Ok(endpoint), Ok(deployment)) = (azure_key, azure_endpoint, azure_deployment) {
         
         let config = ProviderConfig::azure_openai(
             api_key,
             endpoint,
+            deployment,
             "2024-02-15-preview",
         );
         
@@ -59,7 +61,8 @@ async fn main() -> Result<()> {
         "azure" | "azure_openai" => {
             let api_key = std::env::var("AZURE_OPENAI_API_KEY")?;
             let endpoint = std::env::var("AZURE_OPENAI_ENDPOINT")?;
-            ProviderConfig::azure_openai(api_key, endpoint, "2024-02-15-preview")
+            let deployment = std::env::var("AZURE_OPENAI_DEPLOYMENT_NAME")?;
+            ProviderConfig::azure_openai(api_key, endpoint, deployment, "2024-02-15-preview")
         }
         _ => {
             let api_key = std::env::var("OPENAI_API_KEY")?;
