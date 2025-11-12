@@ -152,6 +152,7 @@ Azure OpenAI uses a different endpoint structure than OpenAI:
 - **Authentication**: `api-key` header instead of `Authorization: Bearer`
 - **Model Selection**: Specified via deployment name (passed as model parameter in requests)
 - **API Version**: Required as query parameter
+- **Endpoints**: Azure uses `/chat/completions` for all operations (including reasoning models), unlike OpenAI which has a separate `/responses` endpoint
 
 ### Environment Variables
 

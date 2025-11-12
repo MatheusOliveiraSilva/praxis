@@ -111,9 +111,15 @@ impl AzureOpenAIClient {
         // Check if it's a reasoning model
         let is_reasoning_model = model.starts_with("o1") || model.starts_with("gpt-5");
         
+        // Azure uses reasoning_effort directly (not a reasoning object like OpenAI /responses)
         if let Some(reasoning) = reasoning {
-            // Azure may use reasoning config differently - add if needed
-            obj.insert("reasoning".to_string(), serde_json::to_value(reasoning)?);
+            // Convert reasoning config to reasoning_effort string
+            let effort_str = match reasoning.effort {
+                crate::openai::ReasoningEffort::Low => "low",
+                crate::openai::ReasoningEffort::Medium => "medium",
+                crate::openai::ReasoningEffort::High => "high",
+            };
+            obj.insert("reasoning_effort".to_string(), serde_json::json!(effort_str));
         }
         
         // For reasoning models, use max_completion_tokens
