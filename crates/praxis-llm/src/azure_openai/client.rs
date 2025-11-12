@@ -1,7 +1,7 @@
 // Azure OpenAI-specific client implementation
 
 use crate::openai::{ReasoningConfig, ResponsesResponse};
-use crate::streaming::{parse_chat_sse_stream, parse_response_sse_stream, StreamEvent};
+use crate::streaming::{parse_chat_sse_stream, StreamEvent};
 use crate::traits::{
     ChatClient, ChatOptions, ChatRequest, ChatResponse, LLMClient, ReasoningClient,
     ResponseOptions, ResponseOutput, ResponseRequest, TokenUsage,
@@ -85,10 +85,11 @@ impl AzureOpenAIClient {
         Ok(request)
     }
     
-    /// Build responses request payload
+    /// Build responses request payload for Azure
+    /// Azure uses chat/completions format (messages) not responses format (input)
     fn build_response_request(
         &self,
-        _model: &str,
+        model: &str,
         input: Vec<Message>,
         reasoning: Option<&ReasoningConfig>,
         options: &ResponseOptions,
@@ -99,21 +100,37 @@ impl AzureOpenAIClient {
             .map(|msg| self.convert_message(msg))
             .collect::<Result<Vec<_>>>()?;
         
+        // Azure uses same format as chat/completions with "messages" not "input"
         let mut request = serde_json::json!({
-            "input": azure_messages,
+            "messages": azure_messages,
             "stream": stream,
         });
         
         let obj = request.as_object_mut().unwrap();
         
+        // Check if it's a reasoning model
+        let is_reasoning_model = model.starts_with("o1") || model.starts_with("gpt-5");
+        
         if let Some(reasoning) = reasoning {
+            // Azure may use reasoning config differently - add if needed
             obj.insert("reasoning".to_string(), serde_json::to_value(reasoning)?);
         }
-        if let Some(temp) = options.temperature {
-            obj.insert("temperature".to_string(), serde_json::json!(temp));
-        }
+        
+        // For reasoning models, use max_completion_tokens
         if let Some(max_tokens) = options.max_output_tokens {
-            obj.insert("max_output_tokens".to_string(), serde_json::json!(max_tokens));
+            let token_field = if is_reasoning_model {
+                "max_completion_tokens"
+            } else {
+                "max_tokens"
+            };
+            obj.insert(token_field.to_string(), serde_json::json!(max_tokens));
+        }
+        
+        // Only add temperature for non-reasoning models
+        if let Some(temp) = options.temperature {
+            if !is_reasoning_model {
+                obj.insert("temperature".to_string(), serde_json::json!(temp));
+            }
         }
         
         Ok(request)
@@ -358,7 +375,9 @@ impl ReasoningClient for AzureOpenAIClient {
             false,
         )?;
         
-        let url = self.build_url(deployment_name, "responses");
+        // Azure OpenAI uses chat/completions for reasoning models (gpt-5, o1)
+        // not a separate /responses endpoint like OpenAI
+        let url = self.build_url(deployment_name, "chat/completions");
         
         let response = self
             .http_client
@@ -374,26 +393,51 @@ impl ReasoningClient for AzureOpenAIClient {
             anyhow::bail!("Azure OpenAI API error ({}): {}", status, error_text);
         }
         
-        let raw: ResponsesResponse = response
+        // Azure returns chat/completions format, not responses format
+        let chat_response: AzureChatResponse = response
             .json()
             .await
             .context("Failed to parse response")?;
         
+        // Extract content from the first choice
+        let message_content = chat_response.choices
+            .first()
+            .and_then(|c| c.message.content.clone());
+        
+        // For reasoning models, Azure may include reasoning in the response
+        // For now, we'll use the message content
+        let reasoning_content = None; // Azure doesn't separate reasoning in the same way
+        
+        // Create a synthetic ResponsesResponse for compatibility
+        let raw = ResponsesResponse {
+            id: chat_response.id.clone(),
+            object: "response".to_string(),
+            created_at: chat_response.created,
+            status: "completed".to_string(),
+            model: chat_response.model.clone(),
+            output: vec![],
+            usage: crate::openai::responses::Usage {
+                input_tokens: chat_response.usage.prompt_tokens,
+                output_tokens: chat_response.usage.completion_tokens,
+                total_tokens: chat_response.usage.total_tokens,
+                output_tokens_details: None,
+            },
+            reasoning: None,
+        };
+        
         // Convert to provider-agnostic response
-            Ok(ResponseOutput {
-                reasoning: raw.reasoning_text(),
-                message: raw.message_text(),
-                usage: Some(TokenUsage {
-                    input_tokens: raw.usage.input_tokens,
-                    output_tokens: raw.usage.output_tokens,
-                    total_tokens: raw.usage.total_tokens,
-                    reasoning_tokens: raw.usage.output_tokens_details
-                        .as_ref()
-                        .and_then(|d| d.reasoning_tokens),
-                }),
-                status: Some(raw.status.clone()),
-                raw,
-            })
+        Ok(ResponseOutput {
+            reasoning: reasoning_content,
+            message: message_content,
+            usage: Some(TokenUsage {
+                input_tokens: chat_response.usage.prompt_tokens,
+                output_tokens: chat_response.usage.completion_tokens,
+                total_tokens: chat_response.usage.total_tokens,
+                reasoning_tokens: None,
+            }),
+            status: Some("completed".to_string()),
+            raw,
+        })
     }
     
     async fn reason_stream(
@@ -410,7 +454,9 @@ impl ReasoningClient for AzureOpenAIClient {
             true,
         )?;
         
-        let url = self.build_url(deployment_name, "responses");
+        // Azure OpenAI uses chat/completions for reasoning models (gpt-5, o1)
+        // not a separate /responses endpoint like OpenAI
+        let url = self.build_url(deployment_name, "chat/completions");
         
         let response = self
             .http_client
@@ -426,7 +472,8 @@ impl ReasoningClient for AzureOpenAIClient {
             anyhow::bail!("Azure OpenAI API error ({}): {}", status, error_text);
         }
         
-        Ok(parse_response_sse_stream(response))
+        // Azure uses chat/completions format for streaming too
+        Ok(parse_chat_sse_stream(response))
     }
 }
 
